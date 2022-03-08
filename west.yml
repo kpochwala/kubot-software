@@ -3,7 +3,7 @@
 
 manifest:
   self:
-    path: example-application
+    path: kubot-software
 
   remotes:
     - name: zephyrproject-rtos
