@@ -129,6 +129,15 @@ zephyr_udc0: &usbotg_fs {
 	pinctrl-names = "default";
 	status = "okay";
 	clock-frequency = <I2C_BITRATE_FAST>;
+
+	// V5
+	// vl53l0x@29 {
+	// 	compatible = "st,vl53l0x";
+	// 	reg = <0x29>;
+	// 	label = "VL53L0X";
+	// 	// pd3 pd4
+	// 	xshut-gpios = <&gpiod 4 GPIO_ACTIVE_HIGH>;
+	// };
 };
 
 &i2c4 {
@@ -136,6 +145,14 @@ zephyr_udc0: &usbotg_fs {
 	pinctrl-names = "default";
 	status = "okay";
 	clock-frequency = <I2C_BITRATE_FAST>;
+
+	vl53l0x@29 {
+		compatible = "st,vl53l0x";
+		reg = <0x29>;
+		label = "VL53L0X";
+		// pe0 pe1
+		xshut-gpios = <&gpioe 1 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &usart3 {
