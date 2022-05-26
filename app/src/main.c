@@ -106,6 +106,8 @@ void set_leds(struct rgb* rgbPwmValues, int led_number) {
 }
 ////////////////////////////////////////////////// THREADS
 
+K_MUTEX_DEFINE(rgb_mutex);
+
 #define STACKSIZE 1024
 #define PRIORITY 7
 
@@ -130,7 +132,10 @@ void led_thread(void){
     k_sleep(K_MSEC(1000));
 
     while(1) {
-        set_leds(rgbPwmValues, ALL_LEDS_NUMBER);
+        if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0){
+            set_leds(rgbPwmValues, ALL_LEDS_NUMBER);
+            k_mutex_unlock(&rgb_mutex);
+        }        
         // k_sleep(K_MSEC(1000));
     }
 }
@@ -138,13 +143,22 @@ void led_thread(void){
 void main_thread(void){
     while(1){
         k_sleep(K_MSEC(1000));
-        rgbPwmValues[3].r = 1.0;
-        rgbPwmValues[3].g = 1.0;
-        rgbPwmValues[3].b = 1.0;
+
+        if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+            rgbPwmValues[3].r = 1.0;
+            rgbPwmValues[3].g = 1.0;
+            rgbPwmValues[3].b = 1.0;
+            k_mutex_unlock(&rgb_mutex);
+        }
+
         k_sleep(K_MSEC(1000));
-        rgbPwmValues[3].r = 0.0;
-        rgbPwmValues[3].g = 0.0;
-        rgbPwmValues[3].b = 0.0;
+
+        if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+            rgbPwmValues[3].r = 0.0;
+            rgbPwmValues[3].g = 0.0;
+            rgbPwmValues[3].b = 0.0;
+            k_mutex_unlock(&rgb_mutex);
+        }
     }
 }
 
