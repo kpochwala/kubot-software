@@ -32,6 +32,60 @@
 			gpios = <&gpiod 1 GPIO_ACTIVE_HIGH>;
 			label = "User LD2";
 		};
+
+		rgb_k_r: rgb_k_r {
+			gpios = <&gpiob 14 GPIO_ACTIVE_HIGH>;
+			label = "red cathode";
+		};
+		rgb_k_g: rgb_k_g {
+			gpios = <&gpiob 15 GPIO_ACTIVE_HIGH>;
+			label = "red cathode";
+		};
+		rgb_k_b: rgb_k_b {
+			gpios = <&gpiob 9 GPIO_ACTIVE_HIGH>;
+			label = "red cathode";
+		};
+
+		rgb_en_0: rgb_en_0 {
+			gpios = <&gpioa 15 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV0";
+		};
+		rgb_en_1: rgb_en_1 {
+			gpios = <&gpiob 3 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV1";
+		};
+		rgb_en_2: rgb_en_2 {
+			gpios = <&gpiob 4 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV2";
+		};
+		rgb_en_3: rgb_en_3 {
+			gpios = <&gpiob 8 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV3";
+		};
+		rgb_en_4: rgb_en_4 {
+			gpios = <&gpioc 7 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV4";
+		};
+		rgb_en_5: rgb_en_5 {
+			gpios = <&gpioc 8 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV5";
+		};
+		rgb_en_6: rgb_en_6 {
+			gpios = <&gpioc 12 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV6";
+		};
+		rgb_en_7: rgb_en_7 {
+			gpios = <&gpiod 15 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV7";
+		};
+		rgb_en_8: rgb_en_8 {
+			gpios = <&gpiod 14 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV8";
+		};
+		rgb_en_9: rgb_en_9 {
+			gpios = <&gpiod 5 GPIO_ACTIVE_HIGH>;
+			label = "enable led DV9";
+		};
 	};
 
 	gpio_keys {
