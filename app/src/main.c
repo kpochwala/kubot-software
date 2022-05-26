@@ -115,28 +115,19 @@ void led_thread(void){
 
     for(int i = 0; i < 3; i++){
         gpio_pin_configure_dt(&rgb_components[i], GPIO_OUTPUT_ACTIVE);
-    }
-
-    for(int i = 0; i < 10; i++){
-        gpio_pin_configure_dt(&rgb_enables[i], GPIO_OUTPUT_ACTIVE);
-    }
-
-    for(int i = 0; i < 3; i++){
         gpio_pin_set_dt(&rgb_components[i], 0);
     }
 
     for(int i = 0; i < 10; i++){
+        gpio_pin_configure_dt(&rgb_enables[i], GPIO_OUTPUT_ACTIVE);
         gpio_pin_set_dt(&rgb_enables[i], 0);
     }
-
-    k_sleep(K_MSEC(1000));
 
     while(1) {
         if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0){
             set_leds(rgbPwmValues, ALL_LEDS_NUMBER);
             k_mutex_unlock(&rgb_mutex);
         }        
-        // k_sleep(K_MSEC(1000));
     }
 }
 
