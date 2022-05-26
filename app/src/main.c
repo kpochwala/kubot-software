@@ -6,6 +6,9 @@
 #include <drivers/sensor.h>
 #include <stdio.h>
 
+
+
+////////////////////////////////////////////////// LEDS
 #define ALL_LEDS_NUMBER 10
 #define PWM_RESOLUTION 0.1
 
@@ -101,12 +104,12 @@ void set_leds(struct rgb* rgbPwmValues, int led_number) {
             flash_leds(rgbBoolValues, ALL_LEDS_NUMBER, FLASH_TIME_US);
         }
 }
+////////////////////////////////////////////////// THREADS
 
-void main(void)
-{
-    gpio_pin_configure_dt(&led0, GPIO_OUTPUT_INACTIVE);
-    gpio_pin_configure_dt(&led1, GPIO_OUTPUT_INACTIVE);
+#define STACKSIZE 1024
+#define PRIORITY 7
 
+void led_thread(void){
 
     for(int i = 0; i < 3; i++){
         gpio_pin_configure_dt(&rgb_components[i], GPIO_OUTPUT_ACTIVE);
@@ -116,8 +119,6 @@ void main(void)
         gpio_pin_configure_dt(&rgb_enables[i], GPIO_OUTPUT_ACTIVE);
     }
 
-    k_sleep(K_MSEC(1000));
-
     for(int i = 0; i < 3; i++){
         gpio_pin_set_dt(&rgb_components[i], 0);
     }
@@ -126,108 +127,26 @@ void main(void)
         gpio_pin_set_dt(&rgb_enables[i], 0);
     }
 
+    k_sleep(K_MSEC(1000));
+
     while(1) {
-
-        struct rgb fadeValues[ALL_LEDS_NUMBER];
-
         set_leds(rgbPwmValues, ALL_LEDS_NUMBER);
-
-        // for(float f = 0; f<1.0; f+=PWM_RESOLUTION) {
-
-        //     for(int currentLed = 0; currentLed < ALL_LEDS_NUMBER; currentLed++){
-        //         fadeValues[currentLed].r = f;
-        //         fadeValues[currentLed].g = f;
-        //         fadeValues[currentLed].b = f;
-        //     }
-
-        //     for(int k = 0; k < (FADE_LOOP_ITERATIONS); k++) {
-        //         set_leds(fadeValues, ALL_LEDS_NUMBER);
-        //     }
-        // }
-    }
-
-    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
-    uint32_t dtr = 0;
-
-    // gpio_pin_set_dt(&rgb_k_r, 1);
-    // gpio_pin_set_dt(&rgb_k_r, 1);
-    // k_sleep(K_MSEC(100));
-    // gpio_pin_set_dt(&rgb_k_r, 0);
-    // k_sleep(K_MSEC(100));
-
-
-
-
-    if (usb_enable(NULL)) {
-        return;
-    }
-
-    if (!device_is_ready(led0.port)) {
-        return;
-    }
-
-    if (!device_is_ready(led1.port)) {
-        return;
-    }
-
-    // if (gpio_pin_configure_dt(&led0, GPIO_OUTPUT_ACTIVE) < 0) {
-    // 	return;
-    // }
-
-    // if (gpio_pin_configure_dt(&led1, GPIO_OUTPUT_ACTIVE) < 0) {
-    // 	return;
-    // }
-
-    // if (gpio_pin_toggle_dt(&led0) < 0) {
-    // 	return;
-    // }
-
-    /* Poll if the DTR flag was set */
-    while (!dtr) {
-        uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr);
-        /* Give CPU resources to low priority threads. */
-        k_sleep(K_MSEC(100));
-    }
-
-    // set up VL53L0x
-
-    dev = device_get_binding(DT_LABEL(DT_INST(0, st_vl53l0x)));
-    struct sensor_value value;
-
-    if (dev == NULL) {
-        printk("Could not get VL53L0X device\n");
-        return;
-    }
-
-
-
-
-    while (1) {
-        printk("Hello World! %s\n", CONFIG_ARCH);
-        k_sleep(K_MSEC(10));
-
-        // if (gpio_pin_toggle_dt(&led0) < 0) {
-        // 	return;
-        // }
-
-
-        int ret = 0;
-        ret = sensor_sample_fetch(dev);
-        if (ret) {
-            printk("sensor_sample_fetch failed ret %d\n", ret);
-            return;
-        }
-
-        ret = sensor_channel_get(dev, SENSOR_CHAN_PROX, &value);
-        printk("prox is %d\n", value.val1);
-        
-        gpio_pin_set_dt(&led1, value.val1);
-
-
-        ret = sensor_channel_get(dev,
-                     SENSOR_CHAN_DISTANCE,
-                     &value);
-        printf("distance is %.3fm\n", sensor_value_to_double(&value));
-
+        // k_sleep(K_MSEC(1000));
     }
 }
+
+void main_thread(void){
+    while(1){
+        k_sleep(K_MSEC(1000));
+        rgbPwmValues[3].r = 1.0;
+        rgbPwmValues[3].g = 1.0;
+        rgbPwmValues[3].b = 1.0;
+        k_sleep(K_MSEC(1000));
+        rgbPwmValues[3].r = 0.0;
+        rgbPwmValues[3].g = 0.0;
+        rgbPwmValues[3].b = 0.0;
+    }
+}
+
+K_THREAD_DEFINE(led_thread_id, STACKSIZE, led_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
+K_THREAD_DEFINE(main_thread_id, STACKSIZE, main_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
