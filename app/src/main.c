@@ -69,6 +69,8 @@ static const struct gpio_dt_spec rgb_en_7 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en
 static const struct gpio_dt_spec rgb_en_8 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_8), gpios);
 static const struct gpio_dt_spec rgb_en_9 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_9), gpios);
 
+static const struct gpio_dt_spec ir_led = GPIO_DT_SPEC_GET(DT_NODELABEL(ir_led), gpios);
+
 static const struct gpio_dt_spec rgb_enables[] = {rgb_en_0, rgb_en_1, rgb_en_2, rgb_en_3, rgb_en_4, rgb_en_5, rgb_en_6, rgb_en_7, rgb_en_8, rgb_en_9};
 
 struct rgb {
@@ -226,6 +228,9 @@ void usb_thread(void){
 }
 
 void adc_thread(void){
+
+    gpio_pin_configure_dt(&ir_led, GPIO_OUTPUT_ACTIVE);
+    gpio_pin_set_dt(&ir_led, 1);
 
     struct adc_dt_spec *dt_spec = &adc_channels[0];
     struct adc_channel_cfg channel_cfg = {

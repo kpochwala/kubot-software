@@ -37,6 +37,11 @@
 			label = "User LD2";
 		};
 
+		ir_led: ir_led {
+			gpios = <&gpioc 6 GPIO_ACTIVE_HIGH>;
+			label = "IR led of KTIR sensors";
+		};
+
 		rgb_k_r: rgb_k_r {
 			gpios = <&gpiob 14 GPIO_ACTIVE_HIGH>;
 			label = "red cathode";
