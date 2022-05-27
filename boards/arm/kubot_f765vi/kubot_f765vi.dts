@@ -200,14 +200,36 @@ zephyr_udc0: &usbotg_fs {
 	status = "okay";
 	clock-frequency = <I2C_BITRATE_FAST>;
 
-	// V5
-	// vl53l0x@29 {
-	// 	compatible = "st,vl53l0x";
-	// 	reg = <0x29>;
-	// 	label = "VL53L0X";
-	// 	// pd3 pd4
-	// 	xshut-gpios = <&gpiod 4 GPIO_ACTIVE_HIGH>;
-	// };
+	vl53l0x@35 {
+		compatible = "st,vl53l0x";
+		reg = <0x35>;
+		label = "V5";
+		xshut-gpios = <&gpiod 3 GPIO_ACTIVE_HIGH>;
+	};
+	vl53l0x@36 {
+		compatible = "st,vl53l0x";
+		reg = <0x36>;
+		label = "V6";
+		xshut-gpios = <&gpioa 10 GPIO_ACTIVE_HIGH>;
+	};
+	vl53l0x@37 {
+		compatible = "st,vl53l0x";
+		reg = <0x37>;
+		label = "V7";
+		xshut-gpios = <&gpiod 10 GPIO_ACTIVE_HIGH>;
+	};
+	vl53l0x@38 {
+		compatible = "st,vl53l0x";
+		reg = <0x38>;
+		label = "V8";
+		xshut-gpios = <&gpiod 8 GPIO_ACTIVE_HIGH>;
+	};
+	vl53l0x@39 {
+		compatible = "st,vl53l0x";
+		reg = <0x39>;
+		label = "V9";
+		xshut-gpios = <&gpiob 13 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &i2c4 {
@@ -216,12 +238,35 @@ zephyr_udc0: &usbotg_fs {
 	status = "okay";
 	clock-frequency = <I2C_BITRATE_FAST>;
 
-	vl53l0x@29 {
+	vl53l0x@30 {
 		compatible = "st,vl53l0x";
-		reg = <0x29>;
-		label = "VL53L0X";
-		// pe0 pe1
-		xshut-gpios = <&gpioe 1 GPIO_ACTIVE_HIGH>;
+		reg = <0x30>;
+		label = "V0";
+		xshut-gpios = <&gpioc 14 GPIO_ACTIVE_HIGH>;
+	};
+	vl53l0x@31 {
+		compatible = "st,vl53l0x";
+		reg = <0x31>;
+		label = "V1";
+		xshut-gpios = <&gpioe 6 GPIO_ACTIVE_HIGH>;
+	};
+	vl53l0x@32 {
+		compatible = "st,vl53l0x";
+		reg = <0x32>;
+		label = "V2";
+		xshut-gpios = <&gpioe 4 GPIO_ACTIVE_HIGH>;
+	};
+	vl53l0x@33 {
+		compatible = "st,vl53l0x";
+		reg = <0x33>;
+		label = "V3";
+		xshut-gpios = <&gpioe 2 GPIO_ACTIVE_HIGH>;
+	};
+	vl53l0x@34 {
+		compatible = "st,vl53l0x";
+		reg = <0x34>;
+		label = "V4";
+		xshut-gpios = <&gpioe 0 GPIO_ACTIVE_HIGH>;
 	};
 };
 

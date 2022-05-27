@@ -73,6 +73,7 @@ static const struct gpio_dt_spec ir_led = GPIO_DT_SPEC_GET(DT_NODELABEL(ir_led),
 
 static const struct gpio_dt_spec rgb_enables[] = {rgb_en_0, rgb_en_1, rgb_en_2, rgb_en_3, rgb_en_4, rgb_en_5, rgb_en_6, rgb_en_7, rgb_en_8, rgb_en_9};
 
+static const char* tof_labels[] = {"V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9"};
 struct rgb {
     float r;
     float g;
@@ -176,28 +177,28 @@ void main_thread(void){
     while(1){
         k_sleep(K_MSEC(1000));
 
-        if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
-            rgbPwmValues[3].r = 1.0;
-            rgbPwmValues[3].g = 1.0;
-            rgbPwmValues[3].b = 1.0;
-            k_mutex_unlock(&rgb_mutex);
-        }
+        // if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+        //     rgbPwmValues[3].r = 1.0;
+        //     rgbPwmValues[3].g = 1.0;
+        //     rgbPwmValues[3].b = 1.0;
+        //     k_mutex_unlock(&rgb_mutex);
+        // }
 
-        k_sleep(K_MSEC(1000));
+        // k_sleep(K_MSEC(1000));
 
-        if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
-            rgbPwmValues[3].r = 0.0;
-            rgbPwmValues[3].g = 0.0;
-            rgbPwmValues[3].b = 0.0;
-            k_mutex_unlock(&rgb_mutex);
-        }
+        // if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+        //     rgbPwmValues[3].r = 0.0;
+        //     rgbPwmValues[3].g = 0.0;
+        //     rgbPwmValues[3].b = 0.0;
+        //     k_mutex_unlock(&rgb_mutex);
+        // }
 
-        struct printk_data_t tx_data = { .adc_value = 42 };
-        size_t size = sizeof(struct printk_data_t);
-        char *mem_ptr = k_malloc(size);
-        __ASSERT_NO_MSG(mem_ptr != 0);
-        memcpy(mem_ptr, &tx_data, size);
-        k_fifo_put(&printk_fifo, mem_ptr);
+        // struct printk_data_t tx_data = { .adc_value = 42 };
+        // size_t size = sizeof(struct printk_data_t);
+        // char *mem_ptr = k_malloc(size);
+        // __ASSERT_NO_MSG(mem_ptr != 0);
+        // memcpy(mem_ptr, &tx_data, size);
+        // k_fifo_put(&printk_fifo, mem_ptr);
 
     }
 }
@@ -268,7 +269,63 @@ void adc_thread(void){
 
 }
 
-K_THREAD_DEFINE(led_thread_id, STACKSIZE, led_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
+void fetch_tof(void){
+
+    struct sensor_value value;
+    for(int i = 0; i < 5; i++) {
+        // struct device* tof_1 = device_get_binding(DT_LABEL(VL53L0X));
+        struct device* tof = device_get_binding(tof_labels[i]);
+        
+        sensor_channel_get(tof, SENSOR_CHAN_PROX, &value);
+        sensor_channel_get(tof, SENSOR_CHAN_DISTANCE, &value);
+        
+        printk("Sensor:  %s\n", tof_labels[i]);
+        sensor_sample_fetch(tof);
+        
+    }
+    while(1){
+        k_sleep(K_MSEC(10));
+
+        for(int i = 0; i < 10; i++) {
+            // struct device* tof_1 = device_get_binding(DT_LABEL(VL53L0X));
+            struct device* tof = device_get_binding(tof_labels[i]);
+            struct sensor_value value;
+
+            sensor_sample_fetch(tof);
+            sensor_channel_get(tof, SENSOR_CHAN_PROX, &value);
+            sensor_channel_get(tof, SENSOR_CHAN_DISTANCE, &value);
+            
+            struct rgb active = {.r = 1.0, .g = 1.0, .b = 1.0};
+            struct rgb inactive = kabot_color;
+
+            if(sensor_value_to_double(&value) < 0.1){
+                if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+                    rgbPwmValues[i] = active;
+                    k_mutex_unlock(&rgb_mutex);
+                }
+            }else{
+                if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+                    rgbPwmValues[i] = inactive;
+                    k_mutex_unlock(&rgb_mutex);
+                }
+            }
+        }
+    }
+
+    // while(1){
+    //     for(int i = 0; i < 5; i++) {
+    //         // struct device* tof_1 = device_get_binding(DT_LABEL(VL53L0X));
+    //         struct device* tof = device_get_binding(tof_labels[i]);
+    //         sensor_sample_fetch(tof);
+    //         sensor_channel_get(tof, SENSOR_CHAN_PROX, &value);
+    //         printk("distance is %.3fm\n", sensor_value_to_double(&value));
+    //     }
+    //     k_sleep(K_MSEC(100));
+    // }
+}
+
+K_THREAD_DEFINE(fetch_tof_id, STACKSIZE, fetch_tof, NULL, NULL, NULL, PRIORITY, 0, 0);
+K_THREAD_DEFINE(led_thread_id, STACKSIZE, led_thread, NULL, NULL, NULL, PRIORITY-1, 0, 0);
 K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
 K_THREAD_DEFINE(main_thread_id, STACKSIZE, main_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
 K_THREAD_DEFINE(usb_thread_id, STACKSIZE, usb_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
