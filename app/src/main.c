@@ -4,9 +4,37 @@
 #include <drivers/uart.h>
 #include <drivers/gpio.h>
 #include <drivers/sensor.h>
+#include <drivers/adc.h>
 #include <stdio.h>
 
+////////////////////////////////////////////////// ADC
+#define ADC_RESOLUTION          12
+#define ADC_GAIN                ADC_GAIN_1
+#define ADC_REFERENCE           ADC_REF_INTERNAL
+#define ADC_ACQUISITION_TIME    ADC_ACQ_TIME_DEFAULT
 
+#if !DT_NODE_EXISTS(DT_PATH(zephyr_user)) || \
+	!DT_NODE_HAS_PROP(DT_PATH(zephyr_user), io_channels)
+#error "No suitable devicetree overlay specified"
+#endif
+
+#define DT_SPEC_AND_COMMA(node_id, prop, idx) \
+	ADC_DT_SPEC_GET_BY_IDX(node_id, idx),
+
+/* Data of ADC io-channels specified in devicetree. */
+static const struct adc_dt_spec adc_channels[] = {
+	DT_FOREACH_PROP_ELEM(DT_PATH(zephyr_user), io_channels,
+			     DT_SPEC_AND_COMMA)
+};
+
+#define LABEL_AND_COMMA(node_id, prop, idx) \
+	DT_LABEL(DT_IO_CHANNELS_CTLR_BY_IDX(node_id, idx)),
+
+/* Labels of ADC controllers referenced by the above io-channels. */
+static const char *const adc_labels[] = {
+	DT_FOREACH_PROP_ELEM(DT_PATH(zephyr_user), io_channels,
+			     LABEL_AND_COMMA)
+};
 
 ////////////////////////////////////////////////// LEDS
 #define ALL_LEDS_NUMBER 10
@@ -28,7 +56,7 @@ static const struct gpio_dt_spec rgb_k_r = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_k_r
 static const struct gpio_dt_spec rgb_k_g = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_k_g), gpios);
 static const struct gpio_dt_spec rgb_k_b = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_k_b), gpios);
 
-static const struct gpio_dt_spec rgb_components[3] = {rgb_k_r, rgb_k_g, rgb_k_b};
+static const struct gpio_dt_spec rgb_components[] = {rgb_k_r, rgb_k_g, rgb_k_b};
 
 static const struct gpio_dt_spec rgb_en_0 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_0), gpios);
 static const struct gpio_dt_spec rgb_en_1 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_1), gpios);
@@ -41,7 +69,7 @@ static const struct gpio_dt_spec rgb_en_7 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en
 static const struct gpio_dt_spec rgb_en_8 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_8), gpios);
 static const struct gpio_dt_spec rgb_en_9 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_9), gpios);
 
-static const struct gpio_dt_spec rgb_enables[10] = {rgb_en_0, rgb_en_1, rgb_en_2, rgb_en_3, rgb_en_4, rgb_en_5, rgb_en_6, rgb_en_7, rgb_en_8, rgb_en_9};
+static const struct gpio_dt_spec rgb_enables[] = {rgb_en_0, rgb_en_1, rgb_en_2, rgb_en_3, rgb_en_4, rgb_en_5, rgb_en_6, rgb_en_7, rgb_en_8, rgb_en_9};
 
 struct rgb {
     float r;
@@ -108,8 +136,19 @@ void set_leds(struct rgb* rgbPwmValues, int led_number) {
 
 K_MUTEX_DEFINE(rgb_mutex);
 
+
+struct printk_data_t {
+    void *fifo_reserved; /* 1st word reserved for use by fifo */
+    uint32_t adc_value;
+};
+
+K_FIFO_DEFINE(printk_fifo);
+
+
 #define STACKSIZE 1024
 #define PRIORITY 7
+
+
 
 void led_thread(void){
 
@@ -150,8 +189,81 @@ void main_thread(void){
             rgbPwmValues[3].b = 0.0;
             k_mutex_unlock(&rgb_mutex);
         }
+
+        struct printk_data_t tx_data = { .adc_value = 42 };
+        size_t size = sizeof(struct printk_data_t);
+        char *mem_ptr = k_malloc(size);
+        __ASSERT_NO_MSG(mem_ptr != 0);
+        memcpy(mem_ptr, &tx_data, size);
+        k_fifo_put(&printk_fifo, mem_ptr);
+
     }
 }
 
+void usb_thread(void){
+    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    
+    if (usb_enable(NULL)) {
+        return;
+    }
+
+    /* Poll if the DTR flag was set */
+    uint32_t dtr = 0;
+    while (!dtr) {
+        uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr);
+        /* Give CPU resources to low priority threads. */
+        k_sleep(K_MSEC(100));
+    }
+
+    printk("Hello World! %s\n", CONFIG_ARCH);
+
+    while (1) {
+        struct printk_data_t *rx_data = k_fifo_get(&printk_fifo, K_FOREVER);
+        printk("Adc value: %d\n", rx_data->adc_value);
+        k_free(rx_data);
+    }
+
+}
+
+void adc_thread(void){
+
+    struct adc_dt_spec *dt_spec = &adc_channels[0];
+    struct adc_channel_cfg channel_cfg = {
+            .channel_id       = dt_spec->channel_id,
+            .gain             = ADC_GAIN,
+            .reference        = ADC_REFERENCE,
+            .acquisition_time = ADC_ACQUISITION_TIME,
+    };
+
+    adc_channel_setup(dt_spec->dev, &channel_cfg);
+
+    int16_t sample_buffer[1];
+
+    while(1){
+        struct adc_sequence sequence = {
+            .buffer = sample_buffer,
+            /* buffer size in bytes, not number of samples */
+            .buffer_size = sizeof(sample_buffer),
+            .resolution = ADC_RESOLUTION,
+            .channels = BIT(dt_spec->channel_id),
+            .oversampling = 0,
+        };
+
+        adc_read(dt_spec->dev, &sequence);
+
+        struct printk_data_t tx_data = { .adc_value = sample_buffer[0] };
+        size_t size = sizeof(struct printk_data_t);
+        char *mem_ptr = k_malloc(size);
+        __ASSERT_NO_MSG(mem_ptr != 0);
+        memcpy(mem_ptr, &tx_data, size);
+        k_fifo_put(&printk_fifo, mem_ptr);
+
+        k_sleep(K_MSEC(100));
+    }
+
+}
+
 K_THREAD_DEFINE(led_thread_id, STACKSIZE, led_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
+K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
 K_THREAD_DEFINE(main_thread_id, STACKSIZE, main_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
+K_THREAD_DEFINE(usb_thread_id, STACKSIZE, usb_thread, NULL, NULL, NULL, PRIORITY, 0, 0);

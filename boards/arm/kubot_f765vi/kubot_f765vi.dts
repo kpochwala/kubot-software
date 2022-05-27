@@ -22,6 +22,10 @@
 		zephyr,dtcm = &dtcm;
 	};
 
+	zephyr,user {
+		io-channels = <&adc1 10>, <&adc1 11>, <&adc1 12>, <&adc1 13>;
+	};
+
 	leds {
 		compatible = "gpio-leds";
 		green_led: led_0 {
@@ -102,6 +106,13 @@
 		sw0 = &user_button;
 	};
 };
+
+&adc1 {
+	pinctrl-0 = <&adc1_in10_pc0 &adc1_in11_pc1 &adc1_in12_pc2 &adc1_in13_pc3>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
 
 &clk_hse {
 	clock-frequency = <DT_FREQ_M(8)>; /* STLink 8MHz clock */
