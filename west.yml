@@ -7,7 +7,7 @@ manifest:
 
   remotes:
     - name: zephyrproject-rtos
-      url-base: https://github.com/zephyrproject-rtos
+      url-base: https://github.com/kpochwala
 
   projects:
     - name: zephyr
