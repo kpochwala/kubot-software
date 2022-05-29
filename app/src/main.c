@@ -12,6 +12,8 @@
 #define ADC_GAIN                ADC_GAIN_1
 #define ADC_REFERENCE           ADC_REF_INTERNAL
 #define ADC_ACQUISITION_TIME    ADC_ACQ_TIME_DEFAULT
+#define BL_RGB_OFFSET           10
+#define BL_NUMBER               4
 
 #if !DT_NODE_EXISTS(DT_PATH(zephyr_user)) || \
 	!DT_NODE_HAS_PROP(DT_PATH(zephyr_user), io_channels)
@@ -37,7 +39,7 @@ static const char *const adc_labels[] = {
 };
 
 ////////////////////////////////////////////////// LEDS
-#define ALL_LEDS_NUMBER 10
+#define ALL_LEDS_NUMBER 14
 #define PWM_RESOLUTION 0.1
 
 #define PWM_CYCLE_PERIOD_US 10
@@ -69,9 +71,15 @@ static const struct gpio_dt_spec rgb_en_7 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en
 static const struct gpio_dt_spec rgb_en_8 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_8), gpios);
 static const struct gpio_dt_spec rgb_en_9 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_9), gpios);
 
+static const struct gpio_dt_spec rgb_en_l0 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_l0), gpios);
+static const struct gpio_dt_spec rgb_en_l1 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_l1), gpios);
+static const struct gpio_dt_spec rgb_en_l2 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_l2), gpios);
+static const struct gpio_dt_spec rgb_en_l3 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_l3), gpios);
+
+
 static const struct gpio_dt_spec ir_led = GPIO_DT_SPEC_GET(DT_NODELABEL(ir_led), gpios);
 
-static const struct gpio_dt_spec rgb_enables[] = {rgb_en_0, rgb_en_1, rgb_en_2, rgb_en_3, rgb_en_4, rgb_en_5, rgb_en_6, rgb_en_7, rgb_en_8, rgb_en_9};
+static const struct gpio_dt_spec rgb_enables[] = {rgb_en_0, rgb_en_1, rgb_en_2, rgb_en_3, rgb_en_4, rgb_en_5, rgb_en_6, rgb_en_7, rgb_en_8, rgb_en_9, rgb_en_l0, rgb_en_l1, rgb_en_l2, rgb_en_l3};
 
 static const char* tof_labels[] = {"V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9"};
 struct rgb {
@@ -81,32 +89,43 @@ struct rgb {
 };
 
 const struct rgb kabot_color = {255/255.0, 0/255.0, 72/255.0};
+const struct rgb kabot_init = {0/255.0, 0/255.0, 255/255.0};
+const struct rgb kabot_warning = {255/255.0, 157/255.0, 0/255.0};
+const struct rgb kabot_error = {255/255.0, 0/255.0, 0/255.0};
 
-struct rgb rgbPwmValues[10] = {kabot_color,
-                               kabot_color,
-                               kabot_color,
-                               kabot_color,
-                               kabot_color,
-                               kabot_color,
-                               kabot_color,
-                               kabot_color,
-                               kabot_color,
-                               kabot_color};
+struct rgb rgbPwmValues[] = {kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init,
+                             kabot_init};
 
 
 
 
-struct rgb rgbPwmValues2[10] = {{0.0, 0.0, 0.0},
-                               {0.0, 0.0, 0.0},
-                               {0.0, 0.0, 0.0},
-                               {0.0, 0.0, 0.0},
-                               {0.0, 0.0, 0.0},
-                               {0.0, 0.0, 0.0},
-                               {0.0, 0.0, 0.0},
-                               {0.0, 0.0, 0.0},
-                               {0.0, 0.0, 0.0},
-                               {0.0, 0.0, 0.0},
-                               };
+struct rgb rgbPwmValues2[] = {{0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              {0.0, 0.0, 0.0},
+                              };
 
 void flash_leds(struct rgb* enabled_leds, int led_number, int whole_flash_time){
 
@@ -160,7 +179,7 @@ void led_thread(void){
         gpio_pin_set_dt(&rgb_components[i], 0);
     }
 
-    for(int i = 0; i < 10; i++){
+    for(int i = 0; i < ALL_LEDS_NUMBER; i++){
         gpio_pin_configure_dt(&rgb_enables[i], GPIO_OUTPUT_ACTIVE);
         gpio_pin_set_dt(&rgb_enables[i], 0);
     }
@@ -233,72 +252,124 @@ void adc_thread(void){
     gpio_pin_configure_dt(&ir_led, GPIO_OUTPUT_ACTIVE);
     gpio_pin_set_dt(&ir_led, 1);
 
-    struct adc_dt_spec *dt_spec = &adc_channels[0];
-    struct adc_channel_cfg channel_cfg = {
-            .channel_id       = dt_spec->channel_id,
-            .gain             = ADC_GAIN,
-            .reference        = ADC_REFERENCE,
-            .acquisition_time = ADC_ACQUISITION_TIME,
-    };
-
-    adc_channel_setup(dt_spec->dev, &channel_cfg);
+    for(int i = 0; i < BL_NUMBER; i++){
+        struct adc_dt_spec *dt_spec = &adc_channels[i];
+        struct adc_channel_cfg channel_cfg = {
+                .channel_id       = dt_spec->channel_id,
+                .gain             = ADC_GAIN,
+                .reference        = ADC_REFERENCE,
+                .acquisition_time = ADC_ACQUISITION_TIME,
+        };
+        adc_channel_setup(dt_spec->dev, &channel_cfg);
+    }
 
     int16_t sample_buffer[1];
 
+    struct adc_sequence sequence = {
+        .buffer = sample_buffer,
+        /* buffer size in bytes, not number of samples */
+        .buffer_size = sizeof(sample_buffer),
+        .resolution = ADC_RESOLUTION,
+        .oversampling = 0,
+    };
+    
+    int adc_readings[BL_NUMBER];
+
     while(1){
-        struct adc_sequence sequence = {
-            .buffer = sample_buffer,
-            /* buffer size in bytes, not number of samples */
-            .buffer_size = sizeof(sample_buffer),
-            .resolution = ADC_RESOLUTION,
-            .channels = BIT(dt_spec->channel_id),
-            .oversampling = 0,
-        };
+        printk("BL: ");
+        for(int i = 0; i < BL_NUMBER; i++){
+            struct adc_dt_spec *dt_spec = &adc_channels[i];
+            sequence.channels = BIT(dt_spec->channel_id);
+            gpio_pin_set_dt(&ir_led, 1);
+            adc_read(dt_spec->dev, &sequence);
+            gpio_pin_set_dt(&ir_led, 0);
+            adc_readings[i] = sample_buffer[0];
+            adc_read(dt_spec->dev, &sequence);
+            adc_readings[i] -= sample_buffer[0];
+            printk("BL%4d: %4d ", i, adc_readings[i]);
 
-        adc_read(dt_spec->dev, &sequence);
+            if(adc_readings[i] > 50){
+                if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+                    rgbPwmValues[BL_RGB_OFFSET + i] = kabot_warning;
+                    k_mutex_unlock(&rgb_mutex);
+                }
+            }else{
+                    if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+                    rgbPwmValues[BL_RGB_OFFSET + i] = kabot_color;
+                    k_mutex_unlock(&rgb_mutex);
+                }
+            }
+        }
+        printk("\n");
 
-        struct printk_data_t tx_data = { .adc_value = sample_buffer[0] };
-        size_t size = sizeof(struct printk_data_t);
-        char *mem_ptr = k_malloc(size);
-        __ASSERT_NO_MSG(mem_ptr != 0);
-        memcpy(mem_ptr, &tx_data, size);
-        k_fifo_put(&printk_fifo, mem_ptr);
+        // struct printk_data_t tx_data = { .adc_value = sample_buffer[0] };
+        // size_t size = sizeof(struct printk_data_t);
+        // char *mem_ptr = k_malloc(size);
+        // __ASSERT_NO_MSG(mem_ptr != 0);
+        // memcpy(mem_ptr, &tx_data, size);
+        // k_fifo_put(&printk_fifo, mem_ptr);
 
-        k_sleep(K_MSEC(100));
+        k_sleep(K_MSEC(1));
     }
 
 }
 
 void fetch_tof(void){
 
+    struct sensor_value values[10];
     struct sensor_value value;
-    for(int i = 0; i < 5; i++) {
+    for(int i = 0; i < 10; i++) {
         // struct device* tof_1 = device_get_binding(DT_LABEL(VL53L0X));
         struct device* tof = device_get_binding(tof_labels[i]);
         
-        sensor_channel_get(tof, SENSOR_CHAN_PROX, &value);
-        sensor_channel_get(tof, SENSOR_CHAN_DISTANCE, &value);
+        int retval = 0;
+        retval = sensor_sample_fetch(tof);
         
         printk("Sensor:  %s\n", tof_labels[i]);
-        sensor_sample_fetch(tof);
         
+        if(retval != 0){
+            if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+                rgbPwmValues[i] = kabot_error;
+                k_mutex_unlock(&rgb_mutex);
+            }
+            continue;
+        }
     }
+
     while(1){
-        k_sleep(K_MSEC(10));
+        // k_sleep(K_MSEC(1));
 
         for(int i = 0; i < 10; i++) {
             // struct device* tof_1 = device_get_binding(DT_LABEL(VL53L0X));
+            int retval = 0;
             struct device* tof = device_get_binding(tof_labels[i]);
             struct sensor_value value;
+            values[i] = value;
 
-            sensor_sample_fetch(tof);
-            sensor_channel_get(tof, SENSOR_CHAN_PROX, &value);
-            sensor_channel_get(tof, SENSOR_CHAN_DISTANCE, &value);
-            
+            retval = sensor_sample_fetch(tof);
+            if(retval != 0){
+                if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+                    rgbPwmValues[i] = kabot_warning;
+                    k_mutex_unlock(&rgb_mutex);
+                }
+                printk("Error fetching value from %s error code: %d\n", tof_labels[i], retval);
+                continue;
+            }
+            retval = sensor_channel_get(tof, SENSOR_CHAN_DISTANCE, &value);
+            if(retval != 0){
+                if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
+                    rgbPwmValues[i] = kabot_warning;
+                    k_mutex_unlock(&rgb_mutex);
+                }
+                printk("Error getting value from %s error code: %d\n", tof_labels[i], retval);
+                continue;
+            }
+
+
             struct rgb active = {.r = 1.0, .g = 1.0, .b = 1.0};
             struct rgb inactive = kabot_color;
 
-            if(sensor_value_to_double(&value) < 0.1){
+            if(sensor_value_to_double(&value) < 1.0){
                 if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
                     rgbPwmValues[i] = active;
                     k_mutex_unlock(&rgb_mutex);
@@ -310,6 +381,13 @@ void fetch_tof(void){
                 }
             }
         }
+
+        printk("Sensor values: ");
+        for(int i=0; i<10; i++) {
+            printk("%s: ", tof_labels[i]);
+            printk("%.3fm ", sensor_value_to_double(&values[i]));
+        }
+        printk("\n");
     }
 
     // while(1){

@@ -95,6 +95,26 @@
 			gpios = <&gpiod 5 GPIO_ACTIVE_HIGH>;
 			label = "enable led DV9";
 		};
+
+		rgb_en_l0: rgb_en_l0 {
+			gpios = <&gpioe 15 GPIO_ACTIVE_HIGH>;
+			label = "enable led L0";
+		};
+
+		rgb_en_l1: rgb_en_l1 {
+			gpios = <&gpioe 12 GPIO_ACTIVE_HIGH>;
+			label = "enable led L1";
+		};
+
+		rgb_en_l2: rgb_en_l2 {
+			gpios = <&gpioe 10 GPIO_ACTIVE_HIGH>;
+			label = "enable led L2";
+		};
+
+		rgb_en_l3: rgb_en_l3 {
+			gpios = <&gpioe 8 GPIO_ACTIVE_HIGH>;
+			label = "enable led L3";
+		};
 	};
 
 	gpio_keys {
