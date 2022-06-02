@@ -2,5 +2,8 @@ cmake_minimum_required(VERSION 3.20.0)
 set(BOARD kubot_f765vi)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(app)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-target_sources(app PRIVATE src/main.c)
+zephyr_library_compile_options(-std=c++17 -g -Wall -Wextra -Wno-unused-variable -fpermissive -Wno-comment)
+
+target_sources(app PRIVATE src/main.cpp)

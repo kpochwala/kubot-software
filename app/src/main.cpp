@@ -1,11 +1,48 @@
-#include <zephyr.h>
-#include <sys/printk.h>
-#include <usb/usb_device.h>
-#include <drivers/uart.h>
-#include <drivers/gpio.h>
-#include <drivers/sensor.h>
-#include <drivers/adc.h>
+#include <zephyr/zephyr.h>
+#include <zephyr/device.h>
+#include <zephyr/shell/shell.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/usb/usb_device.h>
+#include <zephyr/drivers/uart.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/adc.h>
+#include <zephyr/drivers/eeprom.h>
 #include <stdio.h>
+#include <zephyr/logging/log.h>
+
+#include <vector>
+#include <memory>
+
+#define DISTANCE_THRESHOLD (CONFIG_VL53L0X_PROXIMITY_THRESHOLD/1000.0)
+
+LOG_MODULE_REGISTER(app);
+
+class SomeClass {
+
+};
+
+std::vector<std::shared_ptr<SomeClass>> someVector;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static const struct device *get_eeprom_device(void)
+{
+	const struct device *dev = DEVICE_DT_GET(DT_ALIAS(eeprom_0));
+
+	if (!device_is_ready(dev)) {
+		printk("\nError: Device \"%s\" is not ready; "
+		       "check the driver initialization logs for errors.\n",
+		       dev->name);
+		return NULL;
+	}
+
+	printk("Found EEPROM device \"%s\"\n", dev->name);
+	return dev;
+}
+
 
 ////////////////////////////////////////////////// ADC
 #define ADC_RESOLUTION          12
@@ -43,7 +80,7 @@ static const char *const adc_labels[] = {
 #define PWM_RESOLUTION 0.1
 
 #define PWM_CYCLE_PERIOD_US 10
-#define FLASH_TIME_US 100
+#define FLASH_TIME_US 1\
 
 #define FADE_TIME_US 300000
 #define FADE_LOOP_ITERATIONS 5
@@ -79,7 +116,10 @@ static const struct gpio_dt_spec rgb_en_l3 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_e
 
 static const struct gpio_dt_spec ir_led = GPIO_DT_SPEC_GET(DT_NODELABEL(ir_led), gpios);
 
-static const struct gpio_dt_spec rgb_enables[] = {rgb_en_0, rgb_en_1, rgb_en_2, rgb_en_3, rgb_en_4, rgb_en_5, rgb_en_6, rgb_en_7, rgb_en_8, rgb_en_9, rgb_en_l0, rgb_en_l1, rgb_en_l2, rgb_en_l3};
+static const struct gpio_dt_spec rgb_enables[] = {rgb_en_0, rgb_en_1, rgb_en_2, rgb_en_3, rgb_en_4, rgb_en_5, rgb_en_6, rgb_en_7, rgb_en_8, rgb_en_9, rgb_en_l3, rgb_en_l2, rgb_en_l0, rgb_en_l1};
+
+// static const struct device *g_eeprom = DEVICE_DT_GET(DT_ALIAS(eeprom_0));
+// static const struct device *eeprom = NULL;
 
 static const char* tof_labels[] = {"V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9"};
 struct rgb {
@@ -89,6 +129,7 @@ struct rgb {
 };
 
 const struct rgb kabot_color = {255/255.0, 0/255.0, 72/255.0};
+// const struct rgb kabot_color = {0/255.0, 0/255.0, 72/255.0};
 const struct rgb kabot_init = {0/255.0, 0/255.0, 255/255.0};
 const struct rgb kabot_warning = {255/255.0, 157/255.0, 0/255.0};
 const struct rgb kabot_error = {255/255.0, 0/255.0, 0/255.0};
@@ -154,6 +195,13 @@ void set_leds(struct rgb* rgbPwmValues, int led_number) {
             flash_leds(rgbBoolValues, ALL_LEDS_NUMBER, FLASH_TIME_US);
         }
 }
+////////////////////////////////////////////////// EEPROM
+
+/*
+ * Get a device structure from a devicetree node with alias eeprom0
+ */
+
+
 ////////////////////////////////////////////////// THREADS
 
 K_MUTEX_DEFINE(rgb_mutex);
@@ -193,9 +241,26 @@ void led_thread(void){
 }
 
 void main_thread(void){
+
+    k_sleep(K_MSEC(3000));
+
+    const struct device *eeprom = get_eeprom_device();
+    eeprom = get_eeprom_device();
+    eeprom = get_eeprom_device();
+    eeprom = get_eeprom_device();
+
+    size_t eeprom_size;
+
+    if(eeprom){
+        eeprom_size = eeprom_get_size(eeprom);
+        LOG_DBG("EEPROM initialized");
+    }else{
+        LOG_ERR("EEPROM initialization failed");
+    }
+
+
     while(1){
         k_sleep(K_MSEC(1000));
-
         // if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
         //     rgbPwmValues[3].r = 1.0;
         //     rgbPwmValues[3].g = 1.0;
@@ -223,8 +288,13 @@ void main_thread(void){
 }
 
 void usb_thread(void){
-    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart));
+	if (!device_is_ready(dev) || usb_enable(NULL)) {
+		return;
+	}
     
+    dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+       
     if (usb_enable(NULL)) {
         return;
     }
@@ -255,10 +325,10 @@ void adc_thread(void){
     for(int i = 0; i < BL_NUMBER; i++){
         struct adc_dt_spec *dt_spec = &adc_channels[i];
         struct adc_channel_cfg channel_cfg = {
-                .channel_id       = dt_spec->channel_id,
                 .gain             = ADC_GAIN,
                 .reference        = ADC_REFERENCE,
                 .acquisition_time = ADC_ACQUISITION_TIME,
+                .channel_id       = dt_spec->channel_id,
         };
         adc_channel_setup(dt_spec->dev, &channel_cfg);
     }
@@ -281,14 +351,16 @@ void adc_thread(void){
             struct adc_dt_spec *dt_spec = &adc_channels[i];
             sequence.channels = BIT(dt_spec->channel_id);
             gpio_pin_set_dt(&ir_led, 1);
+            k_sleep(K_MSEC(1));
             adc_read(dt_spec->dev, &sequence);
             gpio_pin_set_dt(&ir_led, 0);
+
             adc_readings[i] = sample_buffer[0];
             adc_read(dt_spec->dev, &sequence);
             adc_readings[i] -= sample_buffer[0];
             printk("BL%4d: %4d ", i, adc_readings[i]);
 
-            if(adc_readings[i] > 50){
+            if(adc_readings[i] < -10){
                 if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
                     rgbPwmValues[BL_RGB_OFFSET + i] = kabot_warning;
                     k_mutex_unlock(&rgb_mutex);
@@ -316,6 +388,8 @@ void adc_thread(void){
 
 void fetch_tof(void){
 
+    k_sleep(K_MSEC(1000));
+
     struct sensor_value values[10];
     struct sensor_value value;
     for(int i = 0; i < 10; i++) {
@@ -337,7 +411,7 @@ void fetch_tof(void){
     }
 
     while(1){
-        // k_sleep(K_MSEC(1));
+         k_sleep(K_MSEC(1));
 
         for(int i = 0; i < 10; i++) {
             // struct device* tof_1 = device_get_binding(DT_LABEL(VL53L0X));
@@ -369,7 +443,7 @@ void fetch_tof(void){
             struct rgb active = {.r = 1.0, .g = 1.0, .b = 1.0};
             struct rgb inactive = kabot_color;
 
-            if(sensor_value_to_double(&value) < 1.0){
+            if(sensor_value_to_double(&value) < DISTANCE_THRESHOLD){
                 if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
                     rgbPwmValues[i] = active;
                     k_mutex_unlock(&rgb_mutex);
@@ -403,7 +477,38 @@ void fetch_tof(void){
 }
 
 K_THREAD_DEFINE(fetch_tof_id, STACKSIZE, fetch_tof, NULL, NULL, NULL, PRIORITY, 0, 0);
-K_THREAD_DEFINE(led_thread_id, STACKSIZE, led_thread, NULL, NULL, NULL, PRIORITY-1, 0, 0);
-K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
-K_THREAD_DEFINE(main_thread_id, STACKSIZE, main_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
-K_THREAD_DEFINE(usb_thread_id, STACKSIZE, usb_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
+K_THREAD_DEFINE(led_thread_id, STACKSIZE, led_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
+K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY+1, 0, 0);
+K_THREAD_DEFINE(main_thread_id, STACKSIZE, main_thread, NULL, NULL, NULL, PRIORITY+5, 0, 0);
+K_THREAD_DEFINE(usb_thread_id, STACKSIZE, usb_thread, NULL, NULL, NULL, PRIORITY+2, 0, 0);
+
+
+
+
+static int cmd_foo(const struct shell *shell, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+
+	shell_print(shell, "bar");
+
+	return 0;
+}
+SHELL_CMD_REGISTER(foo, NULL, "This prints bar.", cmd_foo);
+
+static int tof1_handler(const struct shell *shell, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+
+	shell_print(shell, "tof1_handler");
+	return 0;
+}
+
+SHELL_SUBCMD_SET_CREATE(sub_tof, (tof, tof1));
+SHELL_SUBCMD_ADD((sub_tof), tof1, &sub_tof, "Help for tof1", tof1_handler, 1, 0);
+SHELL_CMD_REGISTER(tof, &sub_tof, "Tof calibration commands", NULL);
+
+#ifdef __cplusplus
+}
+#endif

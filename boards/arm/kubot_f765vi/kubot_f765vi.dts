@@ -9,16 +9,19 @@
 #include <st/f7/stm32f769Xi.dtsi>
 #include <st/f7/stm32f769nihx-pinctrl.dtsi>
 
+#include <freq.h>
+#include <mem.h>
+
 / {
 	model = "Kubot minisumo board";
 	compatible = "kabot,stm32f765vi-kubot";
 
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
-		zephyr,shell-uart = &usart3;
+		zephyr,shell-uart = &cdc_acm_uart1;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
-		zephyr,code-partition = &slot0_partition;
+		// zephyr,code-partition = &slot0_partition;
 		zephyr,dtcm = &dtcm;
 	};
 
@@ -48,11 +51,11 @@
 		};
 		rgb_k_g: rgb_k_g {
 			gpios = <&gpiob 15 GPIO_ACTIVE_HIGH>;
-			label = "red cathode";
+			label = "green cathode";
 		};
 		rgb_k_b: rgb_k_b {
 			gpios = <&gpiob 9 GPIO_ACTIVE_HIGH>;
-			label = "red cathode";
+			label = "blue cathode";
 		};
 
 		rgb_en_0: rgb_en_0 {
@@ -117,6 +120,13 @@
 		};
 	};
 
+	vbatt {
+		compatible = "voltage-divider";
+		io-channels = <&adc1 8>;
+		output-ohms = <10000>;
+		full-ohms = <(910000 + 10000)>;
+	};
+
 	gpio_keys {
 		compatible = "gpio-keys";
 		user_button: button_0 {
@@ -129,11 +139,12 @@
 		led0 = &green_led;
 		led1 = &blue_led;
 		sw0 = &user_button;
+		eeprom-0 = &eeprom0;
 	};
 };
 
 &adc1 {
-	pinctrl-0 = <&adc1_in10_pc0 &adc1_in11_pc1 &adc1_in12_pc2 &adc1_in13_pc3>;
+	pinctrl-0 = <&adc1_in10_pc0 &adc1_in11_pc1 &adc1_in12_pc2 &adc1_in13_pc3 &adc1_in8_pb0>;
 	pinctrl-names = "default";
 	status = "okay";
 };
@@ -174,6 +185,10 @@ zephyr_udc0: &usbotg_fs {
 		compatible = "zephyr,cdc-acm-uart";
 		label = "CDC_ACM_0";
 	};
+	cdc_acm_uart1: cdc_acm_uart1 {
+		compatible = "zephyr,cdc-acm-uart";
+		label = "CDC_ACM_1";
+	};
 };
 
 &timers1 {
@@ -212,6 +227,17 @@ zephyr_udc0: &usbotg_fs {
 	status = "okay";
 	clock-frequency = <I2C_BITRATE_FAST>;
 
+
+	eeprom0: eeprom@50 {
+		compatible = "atmel,at24";
+		reg = <0x50>;
+		status = "okay";
+		label = "FM24CL16B";
+		size = <2048>;
+		pagesize = <8>;
+		address-width = <8>;
+		timeout = <5>;
+	};
 };
 
 &i2c3 {
@@ -225,30 +251,35 @@ zephyr_udc0: &usbotg_fs {
 		reg = <0x35>;
 		label = "V5";
 		xshut-gpios = <&gpiod 3 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpiod 4 GPIO_ACTIVE_LOW>;
 	};
 	vl53l0x@36 {
 		compatible = "st,vl53l0x";
 		reg = <0x36>;
 		label = "V6";
 		xshut-gpios = <&gpioa 10 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpioa 9 GPIO_ACTIVE_LOW>;
 	};
 	vl53l0x@37 {
 		compatible = "st,vl53l0x";
 		reg = <0x37>;
 		label = "V7";
 		xshut-gpios = <&gpiod 10 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpiod 11 GPIO_ACTIVE_LOW>;
 	};
 	vl53l0x@38 {
 		compatible = "st,vl53l0x";
 		reg = <0x38>;
 		label = "V8";
 		xshut-gpios = <&gpiod 8 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpiod 9 GPIO_ACTIVE_LOW>;
 	};
 	vl53l0x@39 {
 		compatible = "st,vl53l0x";
 		reg = <0x39>;
 		label = "V9";
 		xshut-gpios = <&gpiob 13 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpiob 12 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -263,30 +294,35 @@ zephyr_udc0: &usbotg_fs {
 		reg = <0x30>;
 		label = "V0";
 		xshut-gpios = <&gpioc 14 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpioc 15 GPIO_ACTIVE_LOW>;
 	};
 	vl53l0x@31 {
 		compatible = "st,vl53l0x";
 		reg = <0x31>;
 		label = "V1";
 		xshut-gpios = <&gpioe 6 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpioc 13 GPIO_ACTIVE_LOW>;
 	};
 	vl53l0x@32 {
 		compatible = "st,vl53l0x";
 		reg = <0x32>;
 		label = "V2";
 		xshut-gpios = <&gpioe 4 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpioe 5 GPIO_ACTIVE_LOW>;
 	};
 	vl53l0x@33 {
 		compatible = "st,vl53l0x";
 		reg = <0x33>;
 		label = "V3";
 		xshut-gpios = <&gpioe 2 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpioe 3 GPIO_ACTIVE_LOW>;
 	};
 	vl53l0x@34 {
 		compatible = "st,vl53l0x";
 		reg = <0x34>;
 		label = "V4";
 		xshut-gpios = <&gpioe 0 GPIO_ACTIVE_HIGH>;
+		gpio1-gpios = <&gpioe 1 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -297,62 +333,117 @@ zephyr_udc0: &usbotg_fs {
 	status = "okay";
 };
 
+// &flash0 {
+// 	partitions {
+// 		compatible = "fixed-partitions";
+// 		#address-cells = <1>;
+// 		#size-cells = <1>;
 
-&flash0 {
-	partitions {
-		compatible = "fixed-partitions";
-		#address-cells = <1>;
-		#size-cells = <1>;
+// 		/*
+// 		 * The two sectors 0-1 (32+32 kbytes) are reserved for
+// 		 * the bootloader.
+// 		 */
+// 		boot_partition: partition@0 {
+// 			label = "mcuboot";
+// 			reg = <0x0 0x00010000>;
+// 			read-only;
+// 		};
 
-		/*
-		 * The two sectors 0-1 (32+32 kbytes) are reserved for
-		 * the bootloader.
-		 */
-		boot_partition: partition@0 {
-			label = "mcuboot";
-			reg = <0x0 0x00010000>;
-			read-only;
-		};
+// 		/*
+// 		 * The flash starting at offset 0x10000 and ending at
+// 		 * offset 0x1ffff is reserved for use by the application.
+// 		 * This represents sectors 2-3 (32+32 kbytes)
+// 		 */
+// 		storage_partition: partition@10000 {
+// 			label = "storage";
+// 			reg = <0x00010000 0x00010000>;
+// 		};
 
-		/*
-		 * The flash starting at offset 0x10000 and ending at
-		 * offset 0x1ffff is reserved for use by the application.
-		 * This represents sectors 2-3 (32+32 kbytes)
-		 */
-		storage_partition: partition@10000 {
-			label = "storage";
-			reg = <0x00010000 0x00010000>;
-		};
+// 		/*
+// 		 * Sector 4 (128 kbytes) unallocated.
+// 		 */
 
-		/*
-		 * Sector 4 (128 kbytes) unallocated.
-		 */
+// 		/*
+// 		 * Allocated 3 (256k x 3) sectors for image-0. Sectors 5-7.
+// 		 */
+// 		slot0_partition: partition@40000 {
+// 			label = "image-0";
+// 			reg = <0x00040000 0x000C0000>;
+// 		};
 
-		/*
-		 * Allocated 3 (256k x 3) sectors for image-0. Sectors 5-7.
-		 */
-		slot0_partition: partition@40000 {
-			label = "image-0";
-			reg = <0x00040000 0x000C0000>;
-		};
+// 		/*
+// 		 * Allocated 3 (256k x 3) sectors for image-1. Sectors 8-10.
+// 		 */
+// 		slot1_partition: partition@100000 {
+// 			label = "image-1";
+// 			reg = <0x00100000 0x000C0000>;
+// 		};
 
-		/*
-		 * Allocated 3 (256k x 3) sectors for image-1. Sectors 8-10.
-		 */
-		slot1_partition: partition@100000 {
-			label = "image-1";
-			reg = <0x00100000 0x000C0000>;
-		};
+// 		/*
+// 		 * Allocated 1 (256k) sector for image-scratch. Sector 11.
+// 		 */
+// 		scratch_partition: partition@1C0000 {
+// 			label = "image-scratch";
+// 			reg = <0x001C0000 0x00040000>;
+// 		};
+// 	};
+// };
 
-		/*
-		 * Allocated 1 (256k) sector for image-scratch. Sector 11.
-		 */
-		scratch_partition: partition@1C0000 {
-			label = "image-scratch";
-			reg = <0x001C0000 0x00040000>;
-		};
-	};
-};
+// &flash0 {
+// 	partitions {
+// 		compatible = "fixed-partitions";
+// 		#address-cells = <1>;
+// 		#size-cells = <1>;
+
+// 		/*
+// 		 * The two sectors 0-1 (32+32 kbytes) are reserved for
+// 		 * the bootloader.
+// 		 */
+// 		boot_partition: partition@8000000 {
+// 			label = "mcuboot";
+// 			reg = <0x08000000 DT_SIZE_K(32*2)>;
+// 			read-only;
+// 		};
+
+// 		/*
+// 		 * The flash starting at offset 0x10000 and ending at
+// 		 * offset 0x1ffff is reserved for use by the application.
+// 		 * This represents sectors 2-3 (32+32 kbytes)
+// 		 */
+// 		storage_partition: partition@8010000 {
+// 			label = "storage";
+// 			reg = <0x08010000 DT_SIZE_K(32*2)>;
+// 		};
+
+// 		/*
+// 		 * Sector 4 (128 kbytes) unallocated.
+// 		 */
+
+// 		/*
+// 		 * Allocated 3 (256k x 3) sectors for image-0. Sectors 5-7.
+// 		 */
+// 		slot0_partition: partition@8030000 {
+// 			label = "image-0";
+// 			reg = <0x08030000 DT_SIZE_K(256*3)>;
+// 		};
+
+// 		/*
+// 		 * Allocated 3 (256k x 3) sectors for image-1. Sectors 8-10.
+// 		 */
+// 		slot1_partition: partition@80F0000 {
+// 			label = "image-1";
+// 			reg = <0x080F0000 DT_SIZE_K(256*3)>;
+// 		};
+
+// 		/*
+// 		 * Allocated 1 (256k) sector for image-scratch. Sector 11.
+// 		 */
+// 		scratch_partition: partition@81B0000 {
+// 			label = "image-scratch";
+// 			reg = <0x081B0000 DT_SIZE_K(256)>;
+// 		};
+// 	};
+// };
 
 &backup_sram {
 	status = "okay";
