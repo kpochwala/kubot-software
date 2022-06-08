@@ -120,6 +120,19 @@
 		};
 	};
 
+	pwmleds {
+		compatible = "pwm-leds";
+		red_pwm_led: red_pwm_led {
+			pwms = <&pwm_red_green 1 10000 PWM_POLARITY_NORMAL>;
+		};
+		green_pwm_led: green_pwm_led {
+			pwms = <&pwm_red_green 2 10000 PWM_POLARITY_NORMAL>;
+		};
+		blue_pwm_led: blue_pwm_led {
+			pwms = <&pwm_blue 1 10000 PWM_POLARITY_NORMAL>;
+		};
+	};
+
 	vbatt {
 		compatible = "voltage-divider";
 		io-channels = <&adc1 8>;
@@ -140,6 +153,9 @@
 		led1 = &blue_led;
 		sw0 = &user_button;
 		eeprom-0 = &eeprom0;
+		pwm-red = &red_pwm_led;
+		pwm-green = &green_pwm_led;
+		pwm-blue = &blue_pwm_led;
 	};
 };
 
@@ -192,15 +208,46 @@ zephyr_udc0: &usbotg_fs {
 };
 
 &timers1 {
-	st,prescaler = <10000>;
+	st,prescaler = <100>;
 	status = "okay";
 
 	pwm1: pwm {
+		compatible = "st,stm32-pwm";
 		status = "okay";
 		pinctrl-0 = <&tim1_ch3_pe13>;
 		pinctrl-names = "default";
 	};
 };
+
+&timers12 {
+	st,prescaler = <100>;
+	status = "okay";
+
+	pwm_red_green: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim12_ch1_pb14 &tim12_ch2_pb15>;
+		pinctrl-names = "default";
+	};
+	// pwm_green: pwm {
+	// 	status = "okay";
+	// 	pinctrl-0 = <&tim5_ch2_pa1>;
+	// 	pinctrl-names = "default";
+	// };
+};
+
+&timers11 {
+	st,prescaler = <10>;
+	status = "okay";
+
+	pwm_blue: pwm {
+		compatible = "st,stm32-pwm";
+		status = "okay";
+		pinctrl-0 = <&tim11_ch1_pb9>;
+		pinctrl-names = "default";
+	};
+};
+
+
 
 &iwdg {
 	status = "okay";

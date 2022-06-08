@@ -14,6 +14,8 @@
 #include <vector>
 #include <memory>
 
+#include <zephyr/drivers/pwm.h>
+
 #define DISTANCE_THRESHOLD (CONFIG_VL53L0X_PROXIMITY_THRESHOLD/1000.0)
 
 LOG_MODULE_REGISTER(app);
@@ -80,7 +82,7 @@ static const char *const adc_labels[] = {
 #define PWM_RESOLUTION 0.1
 
 #define PWM_CYCLE_PERIOD_US 10
-#define FLASH_TIME_US 1\
+#define FLASH_TIME_US 250
 
 #define FADE_TIME_US 300000
 #define FADE_LOOP_ITERATIONS 5
@@ -95,7 +97,12 @@ static const struct gpio_dt_spec rgb_k_r = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_k_r
 static const struct gpio_dt_spec rgb_k_g = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_k_g), gpios);
 static const struct gpio_dt_spec rgb_k_b = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_k_b), gpios);
 
-static const struct gpio_dt_spec rgb_components[] = {rgb_k_r, rgb_k_g, rgb_k_b};
+static const struct pwm_dt_spec pwm_red = PWM_DT_SPEC_GET(DT_ALIAS(pwm_red));
+static const struct pwm_dt_spec pwm_green = PWM_DT_SPEC_GET(DT_ALIAS(pwm_green));
+static const struct pwm_dt_spec pwm_blue = PWM_DT_SPEC_GET(DT_ALIAS(pwm_blue));
+
+
+static const struct pwm_dt_spec rgb_components[] = {pwm_red, pwm_green, pwm_blue};
 
 static const struct gpio_dt_spec rgb_en_0 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_0), gpios);
 static const struct gpio_dt_spec rgb_en_1 = GPIO_DT_SPEC_GET(DT_NODELABEL(rgb_en_1), gpios);
@@ -168,31 +175,35 @@ struct rgb rgbPwmValues2[] = {{0.0, 0.0, 0.0},
                               {0.0, 0.0, 0.0},
                               };
 
-void flash_leds(struct rgb* enabled_leds, int led_number, int whole_flash_time){
+// void flash_leds(struct rgb* enabled_leds, int led_number, int whole_flash_time){
 
-    for(int currentLedNumber = 0; currentLedNumber < led_number; currentLedNumber++){
-        struct gpio_dt_spec* current_led = &rgb_enables[currentLedNumber];
-        gpio_pin_set_dt(&rgb_components[0], enabled_leds[currentLedNumber].r>0.01);
-        gpio_pin_set_dt(&rgb_components[1], enabled_leds[currentLedNumber].g>0.01);
-        gpio_pin_set_dt(&rgb_components[2], enabled_leds[currentLedNumber].b>0.01);
+//     for(int currentLedNumber = 0; currentLedNumber < led_number; currentLedNumber++){
+//         struct gpio_dt_spec* current_led = &rgb_enables[currentLedNumber];
+//         gpio_pin_set_dt(&rgb_components[0], enabled_leds[currentLedNumber].r>0.01);
+//         gpio_pin_set_dt(&rgb_components[1], enabled_leds[currentLedNumber].g>0.01);
+//         gpio_pin_set_dt(&rgb_components[2], enabled_leds[currentLedNumber].b>0.01);
 
-        gpio_pin_set_dt(current_led, 1);
-        k_sleep(K_USEC(whole_flash_time / led_number));
-        gpio_pin_set_dt(current_led, 0);
-    }
-}
+//         gpio_pin_set_dt(current_led, 1);
+//         k_sleep(K_USEC(whole_flash_time / led_number));
+//         gpio_pin_set_dt(current_led, 0);
+//     }
+// }
 
 void set_leds(struct rgb* rgbPwmValues, int led_number) {
-        
-        struct rgb rgbBoolValues[ALL_LEDS_NUMBER];
 
-        for(float currentIterationValue = 0; currentIterationValue < 1.0; currentIterationValue+=PWM_RESOLUTION){
-            for(int ledNumber = 0; ledNumber < ALL_LEDS_NUMBER; ledNumber++){
-                rgbBoolValues[ledNumber].r = rgbPwmValues[ledNumber].r > currentIterationValue;
-                rgbBoolValues[ledNumber].g = rgbPwmValues[ledNumber].g > currentIterationValue;
-                rgbBoolValues[ledNumber].b = rgbPwmValues[ledNumber].b > currentIterationValue;
-            }
-            flash_leds(rgbBoolValues, ALL_LEDS_NUMBER, FLASH_TIME_US);
+        for(int currentLedNumber = 0; currentLedNumber < led_number; currentLedNumber++){
+            struct gpio_dt_spec current_led = rgb_enables[currentLedNumber];
+            gpio_pin_set_dt(&current_led, 1);
+
+            pwm_set_pulse_dt(&pwm_red, pwm_red.period * rgbPwmValues[currentLedNumber].r);
+            pwm_set_pulse_dt(&pwm_green, pwm_green.period * rgbPwmValues[currentLedNumber].g);
+            pwm_set_pulse_dt(&pwm_blue, pwm_blue.period * rgbPwmValues[currentLedNumber].b);
+            k_sleep(K_USEC(FLASH_TIME_US));
+            
+            pwm_set_pulse_dt(&pwm_red, 0);
+            pwm_set_pulse_dt(&pwm_green, 0);
+            pwm_set_pulse_dt(&pwm_blue, 0);
+            gpio_pin_set_dt(&current_led, 0);
         }
 }
 ////////////////////////////////////////////////// EEPROM
@@ -221,11 +232,6 @@ K_FIFO_DEFINE(printk_fifo);
 
 
 void led_thread(void){
-
-    for(int i = 0; i < 3; i++){
-        gpio_pin_configure_dt(&rgb_components[i], GPIO_OUTPUT_ACTIVE);
-        gpio_pin_set_dt(&rgb_components[i], 0);
-    }
 
     for(int i = 0; i < ALL_LEDS_NUMBER; i++){
         gpio_pin_configure_dt(&rgb_enables[i], GPIO_OUTPUT_ACTIVE);
@@ -256,6 +262,57 @@ void main_thread(void){
         LOG_DBG("EEPROM initialized");
     }else{
         LOG_ERR("EEPROM initialization failed");
+    }
+
+
+    // leds 
+    
+    // for(int i = 0; i < 3; i++){
+    //     gpio_pin_configure_dt(&rgb_components[i], GPIO_OUTPUT_ACTIVE);
+    //     gpio_pin_set_dt(&rgb_components[i], 1);
+    // }
+
+    for(int i = 0; i < ALL_LEDS_NUMBER; i++){
+        gpio_pin_configure_dt(&rgb_enables[i], GPIO_OUTPUT_ACTIVE);
+        gpio_pin_set_dt(&rgb_enables[i], 1);
+    }
+
+    struct pwm_dt_spec pwm_red = PWM_DT_SPEC_GET(DT_ALIAS(pwm_red));
+    struct pwm_dt_spec pwm_green = PWM_DT_SPEC_GET(DT_ALIAS(pwm_green));
+    struct pwm_dt_spec pwm_blue = PWM_DT_SPEC_GET(DT_ALIAS(pwm_blue));
+
+    if(!device_is_ready(pwm_red.dev)){
+        LOG_ERR("PWM init failed.");
+    }
+
+    if(!device_is_ready(pwm_green.dev)){
+        LOG_ERR("PWM init failed.");
+    }
+
+    if(!device_is_ready(pwm_blue.dev)){
+        LOG_ERR("PWM init failed.");
+    }
+
+
+    int pwm_ret = 0;
+
+    // pwm_ret = pwm_set_pulse_dt(&pwm_blue, )
+
+    // pwm_ret = pwm_set_dt(&pwm_blue, 10000, 5000);
+
+    pwm_ret = pwm_set_pulse_dt(&pwm_red, pwm_red.period/2);
+    if(pwm_ret){
+        LOG_ERR("PWM set failed.");
+    }
+
+    pwm_ret = pwm_set_pulse_dt(&pwm_green, pwm_green.period/2);
+    if(pwm_ret){
+        LOG_ERR("PWM set failed.");
+    }
+
+    pwm_ret = pwm_set_pulse_dt(&pwm_blue, pwm_blue.period/2);
+    if(pwm_ret){
+        LOG_ERR("PWM set failed.");
     }
 
 
@@ -478,9 +535,9 @@ void fetch_tof(void){
 
 K_THREAD_DEFINE(fetch_tof_id, STACKSIZE, fetch_tof, NULL, NULL, NULL, PRIORITY, 0, 0);
 K_THREAD_DEFINE(led_thread_id, STACKSIZE, led_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
-K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY+1, 0, 0);
-K_THREAD_DEFINE(main_thread_id, STACKSIZE, main_thread, NULL, NULL, NULL, PRIORITY+5, 0, 0);
-K_THREAD_DEFINE(usb_thread_id, STACKSIZE, usb_thread, NULL, NULL, NULL, PRIORITY+2, 0, 0);
+// K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY+1, 0, 0);
+// K_THREAD_DEFINE(main_thread_id, STACKSIZE, main_thread, NULL, NULL, NULL, PRIORITY+5, 0, 0);
+// K_THREAD_DEFINE(usb_thread_id, STACKSIZE, usb_thread, NULL, NULL, NULL, PRIORITY+2, 0, 0);
 
 
 
