@@ -6,4 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 zephyr_library_compile_options(-std=c++17 -g -Wall -Wextra -Wno-unused-variable -fpermissive -Wno-comment)
 
-target_sources(app PRIVATE src/main.cpp)
+target_include_directories(app PRIVATE include)
+target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/led_strip_charlieplex.c)
+target_sources(app PRIVATE src/sensor_thread.c)

@@ -1,0 +1,11 @@
+# Charlieplex RGB LED strip driver interface configuration options
+# Copyright (c) 2022, Krzysztof Pochwała
+# SPDX-License-Identifier: Apache-2.0
+
+config CHARLIEPLEX_STRIP
+	bool "Charlieplexed RGB LED Strip"
+	depends on GPIO
+	depends on PWM
+	depends on LED_PWM
+	help
+	  Enable driver for charlieplexed LED strip - common RGB electrode connected to gpio, R/G/B electrodes connected to PWM channels 
