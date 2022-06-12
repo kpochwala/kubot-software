@@ -11,7 +11,7 @@
 #include <zephyr/logging/log.h>
 #include "sensor_thread.h"
 #include "led_strip_charlieplex.h"
-
+#include "line_sensor.h"
 
 LOG_MODULE_REGISTER(app);
 
@@ -98,7 +98,6 @@ void main_thread(void){
     while(1){
         k_sleep(K_MSEC(1 ));
         for(int i = 0; i < ALL_SENSORS_NUMBER; i++){
-
             if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0){
                 // struct rgb *current_led = &rgbPwmValues[i];
 
@@ -118,6 +117,17 @@ void main_thread(void){
                     k_mutex_unlock(&tof_measurements_mutex);
                 }
                 k_mutex_unlock(&rgb_mutex);
+            }
+        }
+        for(int i = 0; i < ALL_LINE_SENSOR_NUMBER; i++){
+            if(k_mutex_lock(&line_measurements_mutex, K_MSEC(100)) == 0) {
+                struct line_measurement *current_measurement = &line_measurements[i];
+                if(current_measurement->white_line_detected){
+                    led_strip_set_led(NULL, kabot_active, 10+i);
+                }else{
+                    led_strip_set_led(NULL, kabot_inactive, 10+i);
+                }
+                k_mutex_unlock(&line_measurements_mutex);
             }
         }
 

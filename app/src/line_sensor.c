@@ -3,8 +3,11 @@
 #include <zephyr/device.h>
 #include "led_strip_charlieplex.h"
 #include <zephyr/drivers/gpio.h>
+#include "line_sensor.h"
 
 LOG_MODULE_REGISTER(line_sensor);
+
+struct line_measurement line_measurements[ALL_LINE_SENSOR_NUMBER];
 
 ////////////////////////////////////////////////// ADC
 #define ADC_RESOLUTION          12
@@ -12,8 +15,6 @@ LOG_MODULE_REGISTER(line_sensor);
 #define ADC_REFERENCE           ADC_REF_INTERNAL
 #define ADC_ACQUISITION_TIME    ADC_ACQ_TIME_DEFAULT
 #define BL_RGB_OFFSET           10
-#define BL_NUMBER               4
-
 
 #if !DT_NODE_EXISTS(DT_PATH(zephyr_user)) || \
 	!DT_NODE_HAS_PROP(DT_PATH(zephyr_user), io_channels)
@@ -44,8 +45,11 @@ void adc_thread(void){
 
     gpio_pin_configure_dt(&ir_led, GPIO_OUTPUT_ACTIVE);
     gpio_pin_set_dt(&ir_led, 1);
-
-    for(int i = 0; i < BL_NUMBER; i++){
+    
+    struct line_measurement* current_measurement;
+    
+    for(int i = 0; i < ALL_LINE_SENSOR_NUMBER; i++){
+        // initialize ADC
         struct adc_dt_spec *dt_spec = &adc_channels[i];
         struct adc_channel_cfg channel_cfg = {
                 .gain             = ADC_GAIN,
@@ -54,6 +58,13 @@ void adc_thread(void){
                 .channel_id       = dt_spec->channel_id,
         };
         adc_channel_setup(dt_spec->dev, &channel_cfg);
+        if(k_mutex_lock(&line_measurements_mutex, K_MSEC(1000)) == 0) {
+            // initialize line readings
+            current_measurement = &line_measurements[i];
+            current_measurement->threshold = -10;
+            current_measurement->white_line_detected = false;   
+            k_mutex_unlock(&line_measurements_mutex);
+        }
     }
 
     int16_t sample_buffer[1];
@@ -66,11 +77,11 @@ void adc_thread(void){
         .oversampling = 0,
     };
     
-    int adc_readings[BL_NUMBER];
-
+    int adc_readings[ALL_LINE_SENSOR_NUMBER];
+    
     while(1){
-        printk("BL: ");
-        for(int i = 0; i < BL_NUMBER; i++){
+        for(int i = 0; i < ALL_LINE_SENSOR_NUMBER; i++){
+
             struct adc_dt_spec *dt_spec = &adc_channels[i];
             sequence.channels = BIT(dt_spec->channel_id);
             gpio_pin_set_dt(&ir_led, 1);
@@ -83,22 +94,17 @@ void adc_thread(void){
             adc_readings[i] -= sample_buffer[0];
             printk("BL%4d: %4d ", i, adc_readings[i]);
 
-            if(adc_readings[i] < -10){
-
-                led_strip_set_led(NULL, kabot_warning, BL_RGB_OFFSET + i);
-            }else{
-                led_strip_set_led(NULL, kabot_color, BL_RGB_OFFSET + i);
+            if(k_mutex_lock(&line_measurements_mutex, K_MSEC(100)) == 0) {
+                current_measurement = &line_measurements[i];
+                if(adc_readings[i] < current_measurement->threshold){
+                    current_measurement->white_line_detected = true;
+                }else{
+                    current_measurement->white_line_detected = false;
+                }            
+                k_mutex_unlock(&line_measurements_mutex);
             }
+
         }
-        printk("\n");
-
-        // struct printk_data_t tx_data = { .adc_value = sample_buffer[0] };
-        // size_t size = sizeof(struct printk_data_t);
-        // char *mem_ptr = k_malloc(size);
-        // __ASSERT_NO_MSG(mem_ptr != 0);
-        // memcpy(mem_ptr, &tx_data, size);
-        // k_fifo_put(&printk_fifo, mem_ptr);
-
         k_sleep(K_MSEC(100));
     }
 
@@ -106,4 +112,5 @@ void adc_thread(void){
 
 #define STACKSIZE 1024
 #define PRIORITY 7
+K_MUTEX_DEFINE(line_measurements_mutex);
 K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
