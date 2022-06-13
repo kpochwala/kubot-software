@@ -1,9 +1,6 @@
 #include <zephyr/zephyr.h>
 #include <zephyr/device.h>
-#include <zephyr/shell/shell.h>
 #include <zephyr/sys/printk.h>
-#include <zephyr/usb/usb_device.h>
-#include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/eeprom.h>
@@ -12,6 +9,9 @@
 #include "sensor_thread.h"
 #include "led_strip_charlieplex.h"
 #include "line_sensor.h"
+
+#include "arm_math.h"
+arm_pid_instance_f32 PID;
 
 LOG_MODULE_REGISTER(app);
 
@@ -38,11 +38,6 @@ static const struct device *get_eeprom_device(void)
 }
 
 
-
-
-BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
-         "Console device is not ACM CDC UART device");
-
 static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 
@@ -63,13 +58,6 @@ static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 
 
 
-struct printk_data_t {
-    void *fifo_reserved; /* 1st word reserved for use by fifo */
-    uint32_t adc_value;
-};
-
-K_FIFO_DEFINE(printk_fifo);
-
 
 #define STACKSIZE 1024
 #define PRIORITY 7
@@ -80,6 +68,18 @@ K_FIFO_DEFINE(printk_fifo);
 void main_thread(void){
 
     k_sleep(K_MSEC(3000));
+
+	const struct device *imu = DEVICE_DT_GET(DT_ALIAS(imu));
+	if (!imu) {
+		LOG_ERR("Failed to find sensor %s\n", "IMU");
+        led_strip_set_led(NULL, kabot_error, 5);
+		return;
+	}
+    if (!device_is_ready(imu)) {
+		LOG_ERR("Failed to find sensor %s\n", "IMU");
+        led_strip_set_led(NULL, kabot_warning, 5);
+		return;
+	}
 
     const struct device *eeprom = get_eeprom_device();
     eeprom = get_eeprom_device();
@@ -135,67 +135,14 @@ void main_thread(void){
     }
 }
 
-void usb_thread(void){
-    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_shell_uart));
-	if (!device_is_ready(dev) || usb_enable(NULL)) {
-		return;
-	}
-    
-    dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
-       
-    if (usb_enable(NULL)) {
-        return;
-    }
-
-    /* Poll if the DTR flag was set */
-    uint32_t dtr = 0;
-    while (!dtr) {
-        uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr);
-        /* Give CPU resources to low priority threads. */
-        k_sleep(K_MSEC(100));
-    }
-
-    printk("Hello World! %s\n", CONFIG_ARCH);
-
-    while (1) {
-        struct printk_data_t *rx_data = k_fifo_get(&printk_fifo, K_FOREVER);
-        printk("Adc value: %d\n", rx_data->adc_value);
-        k_free(rx_data);
-    }
-
-}
 
 
 
 K_THREAD_DEFINE(main_thread_id, STACKSIZE, main_thread, NULL, NULL, NULL, PRIORITY+5, 0, 0);
-K_THREAD_DEFINE(usb_thread_id, STACKSIZE, usb_thread, NULL, NULL, NULL, PRIORITY+2, 0, 0);
 
 
 
 
-static int cmd_foo(const struct shell *shell, size_t argc, char **argv)
-{
-	ARG_UNUSED(argc);
-	ARG_UNUSED(argv);
-
-	shell_print(shell, "bar");
-
-	return 0;
-}
-SHELL_CMD_REGISTER(foo, NULL, "This prints bar.", cmd_foo);
-
-static int tof1_handler(const struct shell *shell, size_t argc, char **argv)
-{
-	ARG_UNUSED(argc);
-	ARG_UNUSED(argv);
-
-	shell_print(shell, "tof1_handler");
-	return 0;
-}
-
-SHELL_SUBCMD_SET_CREATE(sub_tof, (tof, tof1));
-SHELL_SUBCMD_ADD((sub_tof), tof1, &sub_tof, "Help for tof1", tof1_handler, 1, 0);
-SHELL_CMD_REGISTER(tof, &sub_tof, "Tof calibration commands", NULL);
 
 // #ifdef __cplusplus
 // }

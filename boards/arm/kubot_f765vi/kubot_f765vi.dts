@@ -157,6 +157,7 @@
 		pwm-red = &red_pwm_led;
 		pwm-green = &green_pwm_led;
 		pwm-blue = &blue_pwm_led;
+		imu = &mpu9250;
 	};
 };
 
@@ -285,6 +286,19 @@ zephyr_udc0: &usbotg_fs {
 		pagesize = <8>;
 		address-width = <8>;
 		timeout = <0>;
+	};
+
+	mpu9250:mpu9250@68{
+		label = "IMU";
+		compatible = "invensense,mpu9250";
+		reg = <0x68>;
+		status = "okay";
+		gyro-sr-div = <1>;
+		gyro-dlpf = <3600>;
+		gyro-fs = <2000>;
+		accel-fs = <16>;
+		accel-dlpf = "420";
+		supply-gpios = <&gpiod 7 GPIO_ACTIVE_LOW>;
 	};
 };
 

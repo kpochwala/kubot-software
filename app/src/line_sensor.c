@@ -92,7 +92,6 @@ void adc_thread(void){
             adc_readings[i] = sample_buffer[0];
             adc_read(dt_spec->dev, &sequence);
             adc_readings[i] -= sample_buffer[0];
-            printk("BL%4d: %4d ", i, adc_readings[i]);
 
             if(k_mutex_lock(&line_measurements_mutex, K_MSEC(100)) == 0) {
                 current_measurement = &line_measurements[i];
@@ -105,7 +104,7 @@ void adc_thread(void){
             }
 
         }
-        k_sleep(K_MSEC(100));
+        k_sleep(K_MSEC(1));
     }
 
 }
