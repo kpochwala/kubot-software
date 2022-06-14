@@ -161,6 +161,21 @@ int init_motors(){
     init_m2_gpio();
 }
 
+
+struct vec3f {
+    float x;
+    float y;
+    float z;
+};
+
+int set_motors_vec(struct vec3f* translation, struct vec3f* rotation) {
+
+    float m1 = translation->x + 0.5 * rotation->z;
+    float m2 = translation->x - 0.5 * rotation->z;
+
+    return set_motors(m1, m2);
+}
+
 #define STACKSIZE 1024
 #define PRIORITY 7
 
@@ -172,8 +187,29 @@ void main_thread(void){
     k_sleep(K_MSEC(1000));
     init_motors();
 
-    set_motors(1.0, 1.0);
+    struct vec3f t;
+    struct vec3f r;
+
+    t.x = 0.5;
+    r.z = 1.0;
+    set_motors_vec(&t, &r);
     k_sleep(K_MSEC(1000));
+
+    t.x = -0.5;
+    r.z = 1.0;
+    set_motors_vec(&t, &r);
+    k_sleep(K_MSEC(1000));
+
+    t.x = 0.0;
+    r.z = 2.0;
+    set_motors_vec(&t, &r);
+    k_sleep(K_MSEC(1000));
+    
+    t.x = 0.0;
+    r.z = -2.0;
+    set_motors_vec(&t, &r);
+    k_sleep(K_MSEC(1000));
+
     set_motors(0.0, 0.0);
 
     for(float f = 0; f <= 1.0; f += 0.01){
