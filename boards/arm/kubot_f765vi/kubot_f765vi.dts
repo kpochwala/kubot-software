@@ -17,7 +17,8 @@
 	compatible = "kabot,stm32f765vi-kubot";
 
 	chosen {
-		zephyr,console = &cdc_acm_uart0;
+		// zephyr,console = &cdc_acm_uart0;
+		zephyr,console = &usart3;
 		zephyr,shell-uart = &cdc_acm_uart1;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
@@ -29,8 +30,40 @@
 		io-channels = <&adc1 10>, <&adc1 11>, <&adc1 12>, <&adc1 13>;
 	};
 
+	aliases {
+		led0 = &green_led;
+		led1 = &blue_led;
+		sw0 = &user_button;
+		eeprom-0 = &eeprom0;
+		pwm-red = &red_pwm_led;
+		pwm-green = &green_pwm_led;
+		pwm-blue = &blue_pwm_led;
+		imu = &mpu9250;
+		m1-d1 = &m1_d1;
+		m1-d2 = &m1_d2;
+		m2-d1 = &m2_d1;
+		m2-d2 = &m2_d2;
+		m1-in1 = &m1_in1;
+		m1-in2 = &m1_in2;
+		m2-in1 = &m2_in1;
+		m2-in2 = &m2_in2;
+	};
+
 	leds {
 		compatible = "gpio-leds";
+
+		m1_in1: m1_in1 {
+			gpios = <&gpioc 4 GPIO_ACTIVE_HIGH>;
+		};
+		m1_in2: m1_in2 {
+			gpios = <&gpioc 5 GPIO_ACTIVE_HIGH>;
+		};
+		m2_in1: m2_in1 {
+			gpios = <&gpiob 2 GPIO_ACTIVE_HIGH>;
+		};
+		m2_in2: m2_in2 {
+			gpios = <&gpioe 7 GPIO_ACTIVE_HIGH>;
+		};
 		green_led: led_0 {
 			gpios = <&gpiod 0 GPIO_ACTIVE_HIGH>;
 			label = "User LD1";
@@ -133,6 +166,23 @@
 			pwms = <&pwm_blue 1 10000 PWM_POLARITY_NORMAL>;
 		};
 	};
+	hbridge {
+		compatible = "pwm-leds";
+		label = "h-bridge-pwm";
+		m2_d1: m2_d1 {
+			pwms = <&pwm_motor 1 PWM_KHZ(8) PWM_POLARITY_INVERTED>;
+		};
+		m2_d2: m2_d2 {
+			pwms = <&pwm_motor 2 PWM_KHZ(8) PWM_POLARITY_NORMAL>;
+		};
+		m1_d2: m1_d2{
+			pwms = <&pwm_motor 3 PWM_KHZ(8) PWM_POLARITY_NORMAL>;
+		};
+		m1_d1: m1_d1{
+			pwms = <&pwm_motor 4 PWM_KHZ(8) PWM_POLARITY_INVERTED>;
+		};
+
+	};
 
 	vbatt {
 		compatible = "voltage-divider";
@@ -147,17 +197,6 @@
 			label = "User";
 			gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
 		};
-	};
-
-	aliases {
-		led0 = &green_led;
-		led1 = &blue_led;
-		sw0 = &user_button;
-		eeprom-0 = &eeprom0;
-		pwm-red = &red_pwm_led;
-		pwm-green = &green_pwm_led;
-		pwm-blue = &blue_pwm_led;
-		imu = &mpu9250;
 	};
 };
 
@@ -192,17 +231,16 @@
 	apb2-prescaler = <1>;
 };
 
-zephyr_udc0: &usbotg_fs {
+&usbotg_fs {
 	pinctrl-0 = <&usb_otg_fs_dm_pa11 &usb_otg_fs_dp_pa12>;
 	pinctrl-names = "default";
 	status = "okay";
-};
+	
 
-&zephyr_udc0 {
-	cdc_acm_uart0: cdc_acm_uart0 {
-		compatible = "zephyr,cdc-acm-uart";
-		label = "CDC_ACM_0";
-	};
+	// cdc_acm_uart0: cdc_acm_uart0 {
+	// 	compatible = "zephyr,cdc-acm-uart";
+	// 	label = "CDC_ACM_0";
+	// };
 	cdc_acm_uart1: cdc_acm_uart1 {
 		compatible = "zephyr,cdc-acm-uart";
 		label = "CDC_ACM_1";
@@ -210,13 +248,13 @@ zephyr_udc0: &usbotg_fs {
 };
 
 &timers1 {
-	st,prescaler = <100>;
+	st,prescaler = <1>;
 	status = "okay";
 
-	pwm1: pwm {
+	pwm_motor: pwm {
 		compatible = "st,stm32-pwm";
 		status = "okay";
-		pinctrl-0 = <&tim1_ch3_pe13>;
+		pinctrl-0 = <&tim1_ch1_pe9 &tim1_ch2_pe11 &tim1_ch3_pe13 &tim1_ch4_pe14>;
 		pinctrl-names = "default";
 	};
 };

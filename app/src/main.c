@@ -4,11 +4,16 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/eeprom.h>
-#include <stdio.h>
 #include <zephyr/logging/log.h>
+#include <stdio.h>
+
 #include "sensor_thread.h"
 #include "led_strip_charlieplex.h"
 #include "line_sensor.h"
+
+
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/pwm.h>
 
 #include "arm_math.h"
 arm_pid_instance_f32 PID;
@@ -22,20 +27,7 @@ LOG_MODULE_REGISTER(app);
 // extern "C" {
 // #endif
 
-static const struct device *get_eeprom_device(void)
-{
-	const struct device *dev = DEVICE_DT_GET(DT_ALIAS(eeprom_0));
 
-	if (!device_is_ready(dev)) {
-		printk("\nError: Device \"%s\" is not ready; "
-		       "check the driver initialization logs for errors.\n",
-		       dev->name);
-		return NULL;
-	}
-
-	printk("Found EEPROM device \"%s\"\n", dev->name);
-	return dev;
-}
 
 
 static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
@@ -55,9 +47,119 @@ static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 
 ////////////////////////////////////////////////// THREADS
 
+static const struct gpio_dt_spec m1_in1 = GPIO_DT_SPEC_GET(DT_ALIAS(m1_in1), gpios);
+static const struct gpio_dt_spec m1_in2 = GPIO_DT_SPEC_GET(DT_ALIAS(m1_in2), gpios);
+static const struct gpio_dt_spec m2_in1 = GPIO_DT_SPEC_GET(DT_ALIAS(m2_in1), gpios);
+static const struct gpio_dt_spec m2_in2 = GPIO_DT_SPEC_GET(DT_ALIAS(m2_in2), gpios);
+
+static const struct pwm_dt_spec m1_d1 = PWM_DT_SPEC_GET(DT_ALIAS(m1_d1));
+static const struct pwm_dt_spec m1_d2 = PWM_DT_SPEC_GET(DT_ALIAS(m1_d2));
+static const struct pwm_dt_spec m2_d1 = PWM_DT_SPEC_GET(DT_ALIAS(m2_d1));
+static const struct pwm_dt_spec m2_d2 = PWM_DT_SPEC_GET(DT_ALIAS(m2_d2));
 
 
+int set_m1_d1_pwm(float pwm){
+    return pwm_set_pulse_dt(&m1_d1, m1_d1.period * pwm);
+}
 
+int set_m1_d2_pwm(float pwm){
+    return pwm_set_pulse_dt(&m1_d2, m1_d2.period * pwm);
+}
+
+int set_m2_d1_pwm(float pwm){
+    return pwm_set_pulse_dt(&m2_d1, m2_d1.period * pwm);
+}
+
+int set_m2_d2_pwm(float pwm){
+    return pwm_set_pulse_dt(&m2_d2, m2_d2.period * pwm);
+}
+
+int init_m1_gpio(){
+    int ret = 0;
+    ret = gpio_pin_configure_dt(&m1_in1, GPIO_OUTPUT_INACTIVE);
+    if(ret){
+        return ret;
+    }
+
+    ret = gpio_pin_configure_dt(&m1_in2, GPIO_OUTPUT_INACTIVE);
+    if(ret){
+        return ret;
+    }
+
+    return ret;
+}
+
+int init_m2_gpio(){
+    int ret = 0;
+    ret = gpio_pin_configure_dt(&m2_in1, GPIO_OUTPUT_INACTIVE);
+    if(ret){
+        return ret;
+    }
+
+    ret = gpio_pin_configure_dt(&m2_in2, GPIO_OUTPUT_INACTIVE);
+    if(ret){
+        return ret;
+    }
+
+    return ret;
+}
+
+int set_m1_forward(){
+    gpio_pin_set_dt(&m1_in1, 1);
+    gpio_pin_set_dt(&m1_in2, 0);
+}
+int set_m1_backward(){
+    gpio_pin_set_dt(&m1_in1, 0);
+    gpio_pin_set_dt(&m1_in2, 1);
+}
+int set_m2_forward(){
+    gpio_pin_set_dt(&m2_in1, 1);
+    gpio_pin_set_dt(&m2_in2, 0);
+}
+int set_m2_backward(){
+    gpio_pin_set_dt(&m2_in1, 0);
+    gpio_pin_set_dt(&m2_in2, 1);
+}
+
+int set_m1_pwm(float pwm){
+    set_m1_d1_pwm(pwm);
+    set_m1_d2_pwm(1.0);
+}
+int set_m2_pwm(float pwm){
+    set_m2_d1_pwm(pwm);
+    set_m2_d2_pwm(1.0);
+}
+
+int set_m1(float speed){
+    bool dir = speed > 0;
+    if(dir){
+        set_m1_pwm(speed);
+        set_m1_forward();
+    }else{
+        set_m1_pwm(-speed);
+        set_m1_backward();
+    }
+}
+int set_m2(float speed){
+    bool dir = speed > 0;
+    if(dir){
+        set_m2_pwm(speed);
+        set_m2_forward();
+    }else{
+        set_m2_pwm(-speed);
+        set_m2_backward();
+    }
+}
+
+int set_motors(float speed_m1, float speed_m2){
+    set_m1(speed_m1);
+    set_m2(speed_m2);
+}
+
+int init_motors(){
+    init_m1_gpio();
+    init_m2_gpio();
+}
 
 #define STACKSIZE 1024
 #define PRIORITY 7
@@ -67,33 +169,44 @@ static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 
 void main_thread(void){
 
-    k_sleep(K_MSEC(3000));
+    k_sleep(K_MSEC(1000));
+    init_motors();
 
-	const struct device *imu = DEVICE_DT_GET(DT_ALIAS(imu));
-	if (!imu) {
-		LOG_ERR("Failed to find sensor %s\n", "IMU");
-        led_strip_set_led(NULL, kabot_error, 5);
-		return;
-	}
-    if (!device_is_ready(imu)) {
-		LOG_ERR("Failed to find sensor %s\n", "IMU");
-        led_strip_set_led(NULL, kabot_warning, 5);
-		return;
-	}
+    set_motors(1.0, 1.0);
+    k_sleep(K_MSEC(1000));
+    set_motors(0.0, 0.0);
 
-    const struct device *eeprom = get_eeprom_device();
-    eeprom = get_eeprom_device();
-    eeprom = get_eeprom_device();
-    eeprom = get_eeprom_device();
-
-    size_t eeprom_size;
-
-    if(eeprom){
-        eeprom_size = eeprom_get_size(eeprom);
-        LOG_DBG("EEPROM initialized");
-    }else{
-        LOG_ERR("EEPROM initialization failed");
+    for(float f = 0; f <= 1.0; f += 0.01){
+        set_motors(f, f);
+        k_sleep(K_MSEC(20));
     }
+    for(float f = 1.0; f >= -1.0; f -= 0.01){
+        set_motors(f, f);
+        k_sleep(K_MSEC(20));
+    }
+    for(float f = -1.0; f <= 0.0; f += 0.01){
+        set_motors(f, f);
+        k_sleep(K_MSEC(20));
+    }
+
+    // k_sleep(K_MSEC(1000));
+    // set_motors(-1.0, -1.0);
+    // k_sleep(K_MSEC(1000));
+    // set_motors(0.0, 0.0);
+
+
+	// const struct device *imu = DEVICE_DT_GET(DT_ALIAS(imu));
+	// if (!imu) {
+	// 	LOG_ERR("Failed to find sensor %s\n", "IMU");
+    //     led_strip_set_led(NULL, kabot_error, 5);
+	// 	return;
+	// }
+    // if (!device_is_ready(imu)) {
+	// 	LOG_ERR("Failed to find sensor %s\n", "IMU");
+    //     led_strip_set_led(NULL, kabot_warning, 5);
+	// 	return;
+	// }
+
 
     while(1){
         k_sleep(K_MSEC(1 ));

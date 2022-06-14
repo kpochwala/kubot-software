@@ -3,11 +3,17 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/sys/ring_buffer.h>
+
+#define RING_BUF_SIZE 1024
+uint8_t ring_buffer[RING_BUF_SIZE];
+
+struct ring_buf ringbuf;
 
 LOG_MODULE_REGISTER(kabot_usb);
 
-BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
-         "Console device is not ACM CDC UART device");
+// BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
+//          "Console device is not ACM CDC UART device");
 
 struct printk_data_t {
     void *fifo_reserved; /* 1st word reserved for use by fifo */
@@ -23,10 +29,14 @@ void usb_thread(void){
 	}
     
     dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+
+    ring_buf_init(&ringbuf, sizeof(ring_buffer), ring_buffer);
        
     if (usb_enable(NULL)) {
         return;
     }
+
+
 
     /* Poll if the DTR flag was set */
     uint32_t dtr = 0;
