@@ -200,7 +200,7 @@
 		};
 		rc5_rx: rc5_rx {
 			label = "rc5_rx";
-			gpios = <&gpiod 2 GPIO_ACTIVE_LOW>;
+			gpios = <&gpiod 2 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 		};
 	};
 };
