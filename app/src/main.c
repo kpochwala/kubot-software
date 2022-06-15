@@ -11,6 +11,7 @@
 #include "led_strip_charlieplex.h"
 #include "line_sensor.h"
 
+#include "rc5.h"
 
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
@@ -186,44 +187,45 @@ void main_thread(void){
 
     k_sleep(K_MSEC(1000));
     init_motors();
+    rc5_init();
 
-    struct vec3f t;
-    struct vec3f r;
+    // struct vec3f t;
+    // struct vec3f r;
 
-    t.x = 0.5;
-    r.z = 1.0;
-    set_motors_vec(&t, &r);
-    k_sleep(K_MSEC(1000));
+    // t.x = 0.5;
+    // r.z = 1.0;
+    // set_motors_vec(&t, &r);
+    // k_sleep(K_MSEC(1000));
 
-    t.x = -0.5;
-    r.z = 1.0;
-    set_motors_vec(&t, &r);
-    k_sleep(K_MSEC(1000));
+    // t.x = -0.5;
+    // r.z = 1.0;
+    // set_motors_vec(&t, &r);
+    // k_sleep(K_MSEC(1000));
 
-    t.x = 0.0;
-    r.z = 2.0;
-    set_motors_vec(&t, &r);
-    k_sleep(K_MSEC(1000));
+    // t.x = 0.0;
+    // r.z = 2.0;
+    // set_motors_vec(&t, &r);
+    // k_sleep(K_MSEC(1000));
     
-    t.x = 0.0;
-    r.z = -2.0;
-    set_motors_vec(&t, &r);
-    k_sleep(K_MSEC(1000));
+    // t.x = 0.0;
+    // r.z = -2.0;
+    // set_motors_vec(&t, &r);
+    // k_sleep(K_MSEC(1000));
 
     set_motors(0.0, 0.0);
 
-    for(float f = 0; f <= 1.0; f += 0.01){
-        set_motors(f, f);
-        k_sleep(K_MSEC(20));
-    }
-    for(float f = 1.0; f >= -1.0; f -= 0.01){
-        set_motors(f, f);
-        k_sleep(K_MSEC(20));
-    }
-    for(float f = -1.0; f <= 0.0; f += 0.01){
-        set_motors(f, f);
-        k_sleep(K_MSEC(20));
-    }
+    // for(float f = 0; f <= 1.0; f += 0.01){
+    //     set_motors(f, f);
+    //     k_sleep(K_MSEC(20));
+    // }
+    // for(float f = 1.0; f >= -1.0; f -= 0.01){
+    //     set_motors(f, f);
+    //     k_sleep(K_MSEC(20));
+    // }
+    // for(float f = -1.0; f <= 0.0; f += 0.01){
+    //     set_motors(f, f);
+    //     k_sleep(K_MSEC(20));
+    // }
 
     // k_sleep(K_MSEC(1000));
     // set_motors(-1.0, -1.0);
@@ -245,7 +247,19 @@ void main_thread(void){
 
 
     while(1){
-        k_sleep(K_MSEC(1 ));
+        k_sleep(K_MSEC(100));
+
+        int command;
+        if(rc5_new_command_received(&command)){
+            rc5_reset();
+            LOG_DBG("RC5 received");
+            LOG_DBG("Start bits:   0x%x", rc5_get_start_bits(command));
+            LOG_DBG("Toggle bits:  0x%x",rc5_get_toggle_bit(command));
+            LOG_DBG("Address bits: 0x%x",rc5_get_address_bits(command));
+            LOG_DBG("Command bits: 0x%x",rc5_get_command_bits(command));
+        }
+
+
         for(int i = 0; i < ALL_SENSORS_NUMBER; i++){
             if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0){
                 // struct rgb *current_led = &rgbPwmValues[i];

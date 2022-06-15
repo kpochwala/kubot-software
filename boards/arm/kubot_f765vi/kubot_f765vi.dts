@@ -47,6 +47,7 @@
 		m1-in2 = &m1_in2;
 		m2-in1 = &m2_in1;
 		m2-in2 = &m2_in2;
+		tsop = &rc5_rx;
 	};
 
 	leds {
@@ -196,6 +197,10 @@
 		user_button: button_0 {
 			label = "User";
 			gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
+		};
+		rc5_rx: rc5_rx {
+			label = "rc5_rx";
+			gpios = <&gpiod 2 GPIO_ACTIVE_LOW>;
 		};
 	};
 };
