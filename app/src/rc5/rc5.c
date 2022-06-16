@@ -1,4 +1,4 @@
-#include "rc5.h"
+#include "rc5/rc5.h"
 
 struct gpio_callback rc5_rx_irq;
 struct gpio_dt_spec rc5_decoder = GPIO_DT_SPEC_GET(DT_ALIAS(tsop), gpios);

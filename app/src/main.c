@@ -3,57 +3,33 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>
-#include <zephyr/drivers/eeprom.h>
 #include <zephyr/logging/log.h>
 #include <stdio.h>
 
-#include "sensor_thread.h"
+#include "robot_sensors/sensor_thread.h"
+#include "robot_sensors/line_sensor.h"
 #include "led_strip_charlieplex.h"
-#include "line_sensor.h"
+#include "eeprom/eeprom_helper.h"
 
-#include "motor.h"
-#include "rc5.h"
+#include "motor/motor.h"
+#include "rc5/rc5.h"
 
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
-#include "start_module_fsm.h"
+#include "fsm/start_module_fsm.h"
 
 #include "arm_math.h"
 arm_pid_instance_f32 PID;
 
 LOG_MODULE_REGISTER(app);
 
-
-
-// std::vector<std::shared_ptr<SomeClass>> someVector;
-
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
-
-
-
-
-static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 
 
 
-// static const struct device *g_eeprom = DEVICE_DT_GET(DT_ALIAS(eeprom_0));
-// static const struct device *eeprom = NULL;
 
-////////////////////////////////////////////////// EEPROM
-
-/*
- * Get a device structure from a devicetree node with alias eeprom0
- */
-
-
-////////////////////////////////////////////////// THREADS
-
-
-
-#define STACKSIZE 1024
+#define STACKSIZE KB(32)
 #define PRIORITY 7
 
 
@@ -61,9 +37,14 @@ static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 
 void main_thread(void){
 
+    for(int i = 0; i < sizeof(eeprom_buffer); i++){
+        eeprom_buffer[i] = i;
+    }
+
     k_sleep(K_MSEC(1000));
     motors_init();
     rc5_init();
+
 
     // struct vec3f t;
     // struct vec3f r;

@@ -82,5 +82,5 @@ SHELL_CMD_REGISTER(tof, &sub_tof, "Tof calibration commands", NULL);
 
 
 #define PRIORITY 9
-#define STACKSIZE 1024
+#define STACKSIZE KB(4)
 K_THREAD_DEFINE(usb_thread_id, STACKSIZE, usb_thread, NULL, NULL, NULL, PRIORITY, 0, 0);

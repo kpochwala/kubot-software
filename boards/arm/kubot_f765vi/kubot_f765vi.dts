@@ -324,7 +324,7 @@
 		compatible = "atmel,at24";
 		reg = <0x50>;
 		status = "okay";
-		label = "FM24CL16B";
+		label = "FRAM";
 		size = <2048>;
 		pagesize = <8>;
 		address-width = <8>;

@@ -3,7 +3,7 @@
 #include <zephyr/device.h>
 #include "led_strip_charlieplex.h"
 #include <zephyr/drivers/gpio.h>
-#include "line_sensor.h"
+#include "robot_sensors/line_sensor.h"
 
 LOG_MODULE_REGISTER(line_sensor);
 
@@ -109,7 +109,7 @@ void adc_thread(void){
 
 }
 
-#define STACKSIZE 1024
+#define STACKSIZE KB(2)
 #define PRIORITY 7
 K_MUTEX_DEFINE(line_measurements_mutex);
 K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY, 0, 0);

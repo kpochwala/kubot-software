@@ -1,4 +1,4 @@
-#include "motor.h"
+#include "motor/motor.h"
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 

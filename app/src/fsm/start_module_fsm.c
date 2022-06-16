@@ -1,7 +1,8 @@
-#include "start_module_fsm.h"
-#include "rc5.h"
+#include "fsm/start_module_fsm.h"
+#include "rc5/rc5.h"
 
 #include <zephyr/logging/log.h>
+#include "eeprom/eeprom_helper.h"
 
 LOG_MODULE_REGISTER(start_module_fsm);
 
@@ -53,6 +54,10 @@ void set_kill(bool value){
 void save_dohyo_address(int address){
     LOG_DBG("Setting dohyo address to 0x%x", address);
     dohyo_address = address;
+    struct eeprom_view copy;
+    read_eeprom_into(&copy);
+    copy.start_module.dohyo_address = dohyo_address;
+    write_eeprom(&copy);
 }
 
 bool is_start_command(int rc5_address, int rc5_command){
@@ -87,6 +92,12 @@ static void power_on_entry(void *o){
     LOG_DBG("");
     set_start(false);
     set_kill(true);
+
+    struct eeprom_view copy;
+    read_eeprom_into(&copy);
+
+    dohyo_address = copy.start_module.dohyo_address;
+
     // todo: set leds
 }
 static void power_on_exit(void *o){

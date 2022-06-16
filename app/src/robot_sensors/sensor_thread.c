@@ -1,4 +1,4 @@
-#include "sensor_thread.h"
+#include "robot_sensors/sensor_thread.h"
 
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
