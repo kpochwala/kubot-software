@@ -13,4 +13,10 @@ manifest:
     - name: zephyr
       remote: zephyrproject-rtos
       revision: main
-      import: true
+      import:
+        name-whitelist:
+          - cmsis
+          - fatfs
+          - hal_st
+          - hal_stm32
+          - zscilib
