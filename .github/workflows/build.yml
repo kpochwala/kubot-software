@@ -16,6 +16,8 @@ jobs:
 
       - name: Initialize
         working-directory: app
+        env: # Or as an environment variable
+          key: ${{ secrets.privateKey }}
         run: |
           pip3 install -U west
           west init -l .
@@ -23,6 +25,8 @@ jobs:
           pip3 install -r ../zephyr/scripts/requirements-base.txt
           ssh-keyscan -T 240 github.com >> ~/.ssh/known_hosts
           ssh -o StrictHostKeyChecking=no git@github.com
+          echo ${key} > ~/.ssh/id_rsa
+          chmod 400 ~/.ssh/id_rsa
 
       - name: Build firmware
         working-directory: app
