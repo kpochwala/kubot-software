@@ -16,12 +16,13 @@
 
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
-
+#include "start_module_fsm.h"
 
 #include "arm_math.h"
 arm_pid_instance_f32 PID;
 
 LOG_MODULE_REGISTER(app);
+
 
 
 // std::vector<std::shared_ptr<SomeClass>> someVector;
@@ -132,6 +133,8 @@ void main_thread(void){
             LOG_DBG("Toggle bits:  0x%x",rc5_get_toggle_bit(command));
             LOG_DBG("Address bits: 0x%x",rc5_get_address_bits(command));
             LOG_DBG("Command bits: 0x%x",rc5_get_command_bits(command));
+
+            fsm_start_module_run();
         }
 
 
