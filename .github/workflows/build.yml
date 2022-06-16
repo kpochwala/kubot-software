@@ -23,10 +23,10 @@ jobs:
           west init -l .
           west update
           pip3 install -r ../zephyr/scripts/requirements-base.txt
-          ssh-keyscan -T 240 github.com >> ~/.ssh/known_hosts
-          ssh -o StrictHostKeyChecking=no git@github.com
           echo ${key} > ~/.ssh/id_rsa
           chmod 400 ~/.ssh/id_rsa
+          ssh-keyscan -T 240 github.com >> ~/.ssh/known_hosts
+          ssh -o StrictHostKeyChecking=no git@github.com
 
       - name: Build firmware
         working-directory: app
@@ -38,3 +38,8 @@ jobs:
         with:
           name: firmware
           path: app/build/zephyr/zephyr.*
+
+- name: Discord notification
+  env:
+    DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+    uses: Ilshidur/action-discord@master
