@@ -1,5 +1,4 @@
-#ifndef RC5_H
-#define RC5_H
+#pragma once
 
 #include <zephyr.h>
 #include <zephyr/drivers/gpio.h>
@@ -17,5 +16,3 @@ extern struct gpio_dt_spec rc5_decoder;
 void rc5_init();
 void rc5_reset();
 bool rc5_new_command_received(int* new_command);
-
-#endif
