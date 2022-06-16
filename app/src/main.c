@@ -134,6 +134,9 @@ void main_thread(void){
             LOG_DBG("Address bits: 0x%x",rc5_get_address_bits(command));
             LOG_DBG("Command bits: 0x%x",rc5_get_command_bits(command));
 
+            s_obj.rc5_address = rc5_get_address_bits(command);
+            s_obj.rc5_command = rc5_get_command_bits(command);
+
             fsm_start_module_run();
         }
 
