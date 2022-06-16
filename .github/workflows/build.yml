@@ -15,7 +15,7 @@ jobs:
           path: app
 
       - name: Initialize
-        working-directory: example-application
+        working-directory: app
         run: |
           pip3 install -U west
           west init -l .
@@ -25,7 +25,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no git@github.com
 
       - name: Build firmware
-        working-directory: example-application
+        working-directory: app
         run: |
           west build -b kubot_f765vi -s app
 
@@ -33,4 +33,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: firmware
-          path: example-application/build/zephyr/zephyr.*
+          path: app/build/zephyr/zephyr.*
