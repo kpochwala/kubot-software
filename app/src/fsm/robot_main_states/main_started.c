@@ -6,20 +6,21 @@
 #include <string.h>
 
 static struct distance_measurement tof_measurements[ALL_SENSORS_NUMBER];
+static struct line_measurement line_measurements[ALL_LINE_SENSOR_NUMBER];
 
 void main_started(){
 
     memcpy(tof_measurements, get_tof(), sizeof(tof_measurements));
+    memcpy(line_measurements, get_line(), sizeof(line_measurements));
 
     for(int i = 0; i < ALL_SENSORS_NUMBER; i++){
 
-        struct distance_measurement *current_measurement = &tof_measurements[i];
-        if(current_measurement->err){
+        if(tof_measurements[i].err){
             set_led(i, kabot_warning);
             continue;
         }
 
-        if(current_measurement->in_range){
+        if(tof_measurements[i].in_range){
             set_led(i, kabot_active);
         }else{
             set_led(i, kabot_inactive);
@@ -27,9 +28,8 @@ void main_started(){
 
     }
     for(int i = 0; i < ALL_LINE_SENSOR_NUMBER; i++){
-        struct line_measurement *current_measurement = &line_measurements[i];
-        if(current_measurement->white_line_detected){
-            set_led(10+i, kabot_active);
+        if(line_measurements[i].white_line_detected){
+            set_led(ALL_SENSORS_NUMBER+i, kabot_active);
         }else{
             set_led(10+i, kabot_inactive);
         }

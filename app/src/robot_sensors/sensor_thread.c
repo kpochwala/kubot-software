@@ -78,7 +78,7 @@ void fetch_tof(void){
 }
 
 
-struct distance_measurement copy[ALL_SENSORS_NUMBER];
+static struct distance_measurement copy[ALL_SENSORS_NUMBER];
 struct distance_measurement* get_tof(){
     if(k_mutex_lock(&tof_measurements_mutex, K_MSEC(100)) == 0){
         memcpy(copy, tof_measurements, sizeof(copy));

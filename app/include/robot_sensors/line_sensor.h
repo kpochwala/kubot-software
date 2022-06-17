@@ -9,5 +9,4 @@ struct line_measurement {
     int err;
 };
 
-extern struct line_measurement line_measurements[];
-extern struct k_mutex line_measurements_mutex;
+struct line_measurement* get_line();

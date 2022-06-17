@@ -6,6 +6,7 @@
 #include "robot_sensors/line_sensor.h"
 
 LOG_MODULE_REGISTER(line_sensor);
+K_MUTEX_DEFINE(line_measurements_mutex);
 
 struct line_measurement line_measurements[ALL_LINE_SENSOR_NUMBER];
 
@@ -109,7 +110,15 @@ void adc_thread(void){
 
 }
 
+static struct line_measurement copy[ALL_LINE_SENSOR_NUMBER];
+struct line_measurement* get_line(){
+    if(k_mutex_lock(&line_measurements_mutex, K_MSEC(100)) == 0){
+        memcpy(copy, line_measurements, sizeof(copy));
+        k_mutex_unlock(&line_measurements_mutex);
+    }
+    return copy;
+}
+
 #define STACKSIZE KB(2)
 #define PRIORITY 7
-K_MUTEX_DEFINE(line_measurements_mutex);
 K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY, 0, 0);
