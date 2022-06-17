@@ -3,6 +3,7 @@
 
 #include <zephyr/logging/log.h>
 #include "eeprom/eeprom_helper.h"
+#include "fsm/robot_main_states.h"
 
 LOG_MODULE_REGISTER(start_module_fsm);
 
@@ -114,6 +115,7 @@ static void power_on_run(void *o){
     if(is_program_command(s_obj.rc5_address, s_obj.rc5_command)){
         smf_set_state(SMF_CTX(&s_obj), &start_module_states[PROGRAMMING]);
     }
+    main_power_on();
 }
 
 static void programming_entry(void *o){
@@ -129,6 +131,7 @@ static void programming_run(void *o){
     LOG_DBG("");
     //todo: flash twice
     smf_set_state(SMF_CTX(&s_obj), &start_module_states[POWER_ON]);
+    main_programming();
 }
 
 static void started_entry(void *o){
@@ -147,6 +150,7 @@ static void started_run(void *o){
     if(is_program_command(s_obj.rc5_address, s_obj.rc5_command)){
         smf_set_state(SMF_CTX(&s_obj), &start_module_states[PROGRAMMING]);
     }
+    main_started();
 }
 
 static void stopped_safe_entry(void *o){
@@ -162,6 +166,7 @@ static void stopped_safe_run(void *o){
     // delay 1000ms
     // set led flashing
     smf_set_state(SMF_CTX(&s_obj), &start_module_states[STOPPED]);
+    main_stopped_safe();
 }
 
 static void stopped_entry(void *o){
@@ -170,6 +175,7 @@ static void stopped_entry(void *o){
     set_kill(true);
     // set led flashing
     // use command reset to go back into power_on
+    main_stopped();
 }
 static void stopped_exit(void *o){
     LOG_DBG("");
@@ -179,6 +185,7 @@ static void stopped_run(void *o){
     if(is_kabot_custom_command(s_obj.rc5_address, s_obj.rc5_command)){
         kabot_custom_commands[s_obj.rc5_command](o);
     }
+    main_custom_command();
 }
 
 static const struct smf_state start_module_states[] = {

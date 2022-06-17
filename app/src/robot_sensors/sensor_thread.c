@@ -1,5 +1,4 @@
 #include "robot_sensors/sensor_thread.h"
-
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 
@@ -11,7 +10,7 @@ LOG_MODULE_REGISTER(sensor_thread);
 static const char* tof_labels[] = {"V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9"};
 
 
-struct distance_measurement tof_measurements[ALL_SENSORS_NUMBER];
+static struct distance_measurement tof_measurements[ALL_SENSORS_NUMBER];
 
 void fetch_tof(void){
 
@@ -73,33 +72,21 @@ void fetch_tof(void){
                 unlock:
                 k_mutex_unlock(&tof_measurements_mutex);
             }
-            
-
-            // if(current_sensor_measurement->in_range){
-            //     if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
-            //         rgbPwmValues[i] = kabot_active;
-            //         k_mutex_unlock(&rgb_mutex);
-            //     }
-            // }else{
-            //     if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0) {
-            //         rgbPwmValues[i] = kabot_inactive;
-            //         k_mutex_unlock(&rgb_mutex);
-            //     }
-            // }
         }
-
-        // printk("{\"sensors\":{");
-        // for(int i=0; i<(ALL_SENSORS_NUMBER - 1); i++) {
-        //     printk("\"%s\": ", tof_labels[i]);
-        //     printk("%.3f,", sensor_value_to_double(&values[i]));
-        // }
-        // printk("\"%s\": ", tof_labels[ALL_SENSORS_NUMBER - 1]);
-        // printk("%.3f", sensor_value_to_double(&values[ALL_SENSORS_NUMBER - 1]));
-        // printk("}}\n");
     }
 }
 
-#define STACK_SIZE 1024
+
+struct distance_measurement copy[ALL_SENSORS_NUMBER];
+struct distance_measurement* get_tof(){
+    if(k_mutex_lock(&tof_measurements_mutex, K_MSEC(100)) == 0){
+        memcpy(copy, tof_measurements, sizeof(copy));
+        k_mutex_unlock(&tof_measurements_mutex);
+    }
+    return copy;
+}
+
+#define STACK_SIZE KB(16)
 #define PRIORITY 7
 K_MUTEX_DEFINE(tof_measurements_mutex);
 K_THREAD_DEFINE(fetch_tof_id, STACK_SIZE, fetch_tof, NULL, NULL, NULL, PRIORITY, 0, 0);

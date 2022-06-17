@@ -11,4 +11,6 @@ struct distance_measurement {
     int err;
 };
 
-extern struct distance_measurement tof_measurements[];
+struct distance_measurement* get_tof();
+
+// extern struct distance_measurement tof_measurements[];

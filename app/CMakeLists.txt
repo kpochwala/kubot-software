@@ -14,5 +14,13 @@ target_sources(app PRIVATE src/robot_sensors/line_sensor.c)
 target_sources(app PRIVATE src/kubot_usb.c)
 target_sources(app PRIVATE src/rc5/rc5.c)
 target_sources(app PRIVATE src/motor/motor.c)
+
 target_sources(app PRIVATE src/fsm/start_module_fsm.c)
+target_sources(app PRIVATE src/fsm/robot_main_states/main_custom_command.c)
+target_sources(app PRIVATE src/fsm/robot_main_states/main_power_on.c)
+target_sources(app PRIVATE src/fsm/robot_main_states/main_programming.c)
+target_sources(app PRIVATE src/fsm/robot_main_states/main_started.c)
+target_sources(app PRIVATE src/fsm/robot_main_states/main_stopped_safe.c)
+target_sources(app PRIVATE src/fsm/robot_main_states/main_stopped.c)
+
 target_sources(app PRIVATE src/eeprom/eeprom_helper.c)
