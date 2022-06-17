@@ -45,6 +45,8 @@ const struct led_rgb kabot_color = {255, 0, 72};
 const struct led_rgb kabot_init = {0, 0, 255};
 const struct led_rgb kabot_warning = {255, 157, 0};
 const struct led_rgb kabot_error = {255, 0, 0};
+const struct led_rgb kabot_ok = {0, 255, 0};
+const struct led_rgb kabot_off = {0, 0, 0};
 
 const struct led_rgb kabot_active = {255, 255, 255};
 const struct led_rgb kabot_inactive = {127, 0, 36};
@@ -148,7 +150,7 @@ void set_led(int number, struct led_rgb color){
 }
 
 void set_led_multi(struct led_rgb* pixels, size_t number_of_pixels, size_t offset){
-    if(number_of_pixels + offset > sizeof(ALL_LEDS_NUMBER)){
+    if(number_of_pixels + offset > ALL_LEDS_NUMBER){
         LOG_ERR("Too big size of led array or offset: array: %d offset: %d max: %d", number_of_pixels, offset, ALL_LEDS_NUMBER);
         return;
     }
@@ -160,6 +162,16 @@ void set_led_multi(struct led_rgb* pixels, size_t number_of_pixels, size_t offse
     }else{
         LOG_WRN("Led mutex timeout!");
     }
+}
+
+static struct led_rgb colors[ALL_LEDS_NUMBER];
+void set_led_all(struct led_rgb color){
+    for(size_t i = 0; i < ALL_LEDS_NUMBER; i++){
+        colors[i].r = color.r;
+        colors[i].g = color.g;
+        colors[i].b = color.b;
+    }
+    set_led_multi(colors, ALL_LEDS_NUMBER, 0);
 }
 
 K_THREAD_DEFINE(led_thread_id, 1024, led_thread, NULL, NULL, NULL, 6, 0, 0);

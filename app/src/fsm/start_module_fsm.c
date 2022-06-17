@@ -123,6 +123,8 @@ static void programming_entry(void *o){
     set_start(false);
     set_kill(true);
     save_dohyo_address(s_obj.rc5_command);
+    s_obj.rc5_command = 0;
+    s_obj.rc5_address = 0;
 }
 static void programming_exit(void *o){
     LOG_DBG("");
@@ -138,6 +140,9 @@ static void started_entry(void *o){
     LOG_DBG("");
     set_start(true);
     set_kill(false);
+
+    s_obj.rc5_command = 0;
+    s_obj.rc5_address = 0;
 }
 static void started_exit(void *o){
     LOG_DBG("");
@@ -147,9 +152,9 @@ static void started_run(void *o){
     if(is_stop_command(s_obj.rc5_address, s_obj.rc5_command)){
         smf_set_state(SMF_CTX(&s_obj), &start_module_states[STOPPED_SAFE]);
     }
-    if(is_program_command(s_obj.rc5_address, s_obj.rc5_command)){
-        smf_set_state(SMF_CTX(&s_obj), &start_module_states[PROGRAMMING]);
-    }
+    // if(is_program_command(s_obj.rc5_address, s_obj.rc5_command)){
+    //     smf_set_state(SMF_CTX(&s_obj), &start_module_states[PROGRAMMING]);
+    // }
     main_started();
 }
 
@@ -157,6 +162,9 @@ static void stopped_safe_entry(void *o){
     LOG_DBG("");
     set_start(false);
     set_kill(true);
+
+    s_obj.rc5_command = 0;
+    s_obj.rc5_address = 0;
 }
 static void stopped_safe_exit(void *o){
     LOG_DBG("");
@@ -173,9 +181,9 @@ static void stopped_entry(void *o){
     LOG_DBG("");
     set_start(false);
     set_kill(true);
-    // set led flashing
-    // use command reset to go back into power_on
-    main_stopped();
+
+    s_obj.rc5_command = 0;
+    s_obj.rc5_address = 0;
 }
 static void stopped_exit(void *o){
     LOG_DBG("");
@@ -185,7 +193,7 @@ static void stopped_run(void *o){
     if(is_kabot_custom_command(s_obj.rc5_address, s_obj.rc5_command)){
         kabot_custom_commands[s_obj.rc5_command](o);
     }
-    main_custom_command();
+    main_stopped();
 }
 
 static const struct smf_state start_module_states[] = {

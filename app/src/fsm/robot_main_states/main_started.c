@@ -5,7 +5,7 @@
 #include "robot_sensors/line_sensor.h"
 #include <string.h>
 
-struct distance_measurement tof_measurements[ALL_SENSORS_NUMBER];
+static struct distance_measurement tof_measurements[ALL_SENSORS_NUMBER];
 
 void main_started(){
 
@@ -24,7 +24,6 @@ void main_started(){
         }else{
             set_led(i, kabot_inactive);
         }
-
 
     }
     for(int i = 0; i < ALL_LINE_SENSOR_NUMBER; i++){
