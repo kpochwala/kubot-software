@@ -6,6 +6,7 @@
 #define REFRESH_TIME_MS 20
 
 LOG_MODULE_REGISTER(sensor_thread);
+K_MUTEX_DEFINE(tof_measurements_mutex);
 
 static const char* tof_labels[] = {"V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9"};
 
@@ -88,5 +89,5 @@ struct distance_measurement* get_tof(){
 
 #define STACK_SIZE KB(16)
 #define PRIORITY 7
-K_MUTEX_DEFINE(tof_measurements_mutex);
+
 K_THREAD_DEFINE(fetch_tof_id, STACK_SIZE, fetch_tof, NULL, NULL, NULL, PRIORITY, 0, 0);

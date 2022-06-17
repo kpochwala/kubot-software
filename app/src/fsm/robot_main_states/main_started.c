@@ -12,32 +12,27 @@ void main_started(){
     memcpy(tof_measurements, get_tof(), sizeof(tof_measurements));
 
     for(int i = 0; i < ALL_SENSORS_NUMBER; i++){
-        if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0){
 
-            struct distance_measurement *current_measurement = &tof_measurements[i];
-            if(current_measurement->err){
-                led_strip_set_led(NULL, kabot_warning, i);
-                continue;
-            }
-
-            if(current_measurement->in_range){
-                led_strip_set_led(NULL, kabot_active, i);
-            }else{
-                led_strip_set_led(NULL, kabot_inactive, i);
-            }
-
-            k_mutex_unlock(&rgb_mutex);
+        struct distance_measurement *current_measurement = &tof_measurements[i];
+        if(current_measurement->err){
+            set_led(i, kabot_warning);
+            continue;
         }
+
+        if(current_measurement->in_range){
+            set_led(i, kabot_active);
+        }else{
+            set_led(i, kabot_inactive);
+        }
+
+
     }
     for(int i = 0; i < ALL_LINE_SENSOR_NUMBER; i++){
-        if(k_mutex_lock(&line_measurements_mutex, K_MSEC(100)) == 0) {
-            struct line_measurement *current_measurement = &line_measurements[i];
-            if(current_measurement->white_line_detected){
-                led_strip_set_led(NULL, kabot_active, 10+i);
-            }else{
-                led_strip_set_led(NULL, kabot_inactive, 10+i);
-            }
-            k_mutex_unlock(&line_measurements_mutex);
+        struct line_measurement *current_measurement = &line_measurements[i];
+        if(current_measurement->white_line_detected){
+            set_led(10+i, kabot_active);
+        }else{
+            set_led(10+i, kabot_inactive);
         }
     }
 }

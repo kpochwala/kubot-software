@@ -5,7 +5,7 @@
 #include "led_strip_charlieplex.h"
 
 LOG_MODULE_REGISTER(led_strip_charlieplex);
-
+K_MUTEX_DEFINE(rgb_mutex);
 
 ////////////////////////////////////////////////// LEDS
 #define ALL_LEDS_NUMBER 14
@@ -138,6 +138,28 @@ int led_strip_set_led(const struct device *dev, struct led_rgb pixel, size_t num
     return led_strip_update_rgb_impl(dev, pixels, ALL_LEDS_NUMBER);
 }
 
+void set_led(int number, struct led_rgb color){
+    if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0){
+        led_strip_set_led(NULL, color, number);
+        k_mutex_unlock(&rgb_mutex);
+    }else{
+        LOG_WRN("Led mutex timeout!");
+    }
+}
 
-K_MUTEX_DEFINE(rgb_mutex);
+void set_led_multi(struct led_rgb* pixels, size_t number_of_pixels, size_t offset){
+    if(number_of_pixels + offset > sizeof(ALL_LEDS_NUMBER)){
+        LOG_ERR("Too big size of led array or offset: array: %d offset: %d max: %d", number_of_pixels, offset, ALL_LEDS_NUMBER);
+        return;
+    }
+    if(k_mutex_lock(&rgb_mutex, K_MSEC(100)) == 0){
+        for(size_t i = 0; i < number_of_pixels; i++){
+            led_strip_set_led(NULL, pixels[i], i+offset);
+            k_mutex_unlock(&rgb_mutex);
+        }
+    }else{
+        LOG_WRN("Led mutex timeout!");
+    }
+}
+
 K_THREAD_DEFINE(led_thread_id, 1024, led_thread, NULL, NULL, NULL, 6, 0, 0);
