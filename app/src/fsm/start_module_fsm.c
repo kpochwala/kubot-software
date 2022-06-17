@@ -5,6 +5,7 @@
 #include "eeprom/eeprom_helper.h"
 #include "fsm/robot_main_states.h"
 
+
 LOG_MODULE_REGISTER(start_module_fsm);
 
 static bool is_initialized;
@@ -14,15 +15,32 @@ static const int start_command = 1;
 static const int stop_command = 0;
 static const int program_command_address = 0xb;
 static const int start_stop_command_address = 0x7;
-static const int kabot_custom_command_rc5_address = 0xC;
-static const int kabot_reset_start_module_rc5_command = 0x0;
+static const int kabot_custom_command_rc5_address = 0x00;
+static const int kabot_reset_start_module_rc5_command = 0x0c;
 
 
 static const struct smf_state start_module_states[];
 
 enum kabot_custom_command {
-    RESET_START_MODULE = 0x00,
+    RESET_START_MODULE = 0x0C,
+    KABOT_UP = 0x10,
+    KABOT_DOWN = 0x11,
+    KABOT_LEFT = 0x15,
+    KABOT_RIGHT = 0x16,
+    KABOT_OK = 0x17
 };
+
+
+static bool is_known_command(int
+ command){
+    return command == RESET_START_MODULE
+        // || command == KABOT_UP
+        // || command == KABOT_DOWN
+        // || command == KABOT_LEFT
+        // || command == KABOT_RIGHT
+        // || command == KABOT_OK
+        ;
+}
 
 static const  kabot_custom_command_fn kabot_custom_commands[];
 
@@ -35,6 +53,7 @@ struct s_object s_obj;
 // custom commands:
 
 void reset_start_module(void *o){
+    ARG_UNUSED(o);
     smf_set_state(SMF_CTX(&s_obj), &start_module_states[POWER_ON]);
 }
 
@@ -43,6 +62,7 @@ void reset_start_module(void *o){
 
 
 // module machine state commands:
+
 
 void set_start(bool value){
     LOG_DBG("Setting start to: %d", value);
@@ -102,9 +122,11 @@ static void power_on_entry(void *o){
     // todo: set leds
 }
 static void power_on_exit(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
 }
 static void power_on_run(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
     if(is_start_command(s_obj.rc5_address, s_obj.rc5_command)){
         smf_set_state(SMF_CTX(&s_obj), &start_module_states[STARTED]);
@@ -119,17 +141,20 @@ static void power_on_run(void *o){
 }
 
 static void programming_entry(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
     set_start(false);
     set_kill(true);
     save_dohyo_address(s_obj.rc5_command);
-    s_obj.rc5_command = 0;
-    s_obj.rc5_address = 0;
+    s_obj.rc5_command = -1;
+    s_obj.rc5_address = -1;
 }
 static void programming_exit(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
 }
 static void programming_run(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
     //todo: flash twice
     smf_set_state(SMF_CTX(&s_obj), &start_module_states[POWER_ON]);
@@ -137,17 +162,20 @@ static void programming_run(void *o){
 }
 
 static void started_entry(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
     set_start(true);
     set_kill(false);
 
-    s_obj.rc5_command = 0;
-    s_obj.rc5_address = 0;
+    s_obj.rc5_command = -1;
+    s_obj.rc5_address = -1;
 }
 static void started_exit(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
 }
 static void started_run(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
     if(is_stop_command(s_obj.rc5_address, s_obj.rc5_command)){
         smf_set_state(SMF_CTX(&s_obj), &start_module_states[STOPPED_SAFE]);
@@ -159,17 +187,20 @@ static void started_run(void *o){
 }
 
 static void stopped_safe_entry(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
     set_start(false);
     set_kill(true);
 
-    s_obj.rc5_command = 0;
-    s_obj.rc5_address = 0;
+    s_obj.rc5_command = -1;
+    s_obj.rc5_address = -1;
 }
 static void stopped_safe_exit(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
 }
 static void stopped_safe_run(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
     // delay 1000ms
     // set led flashing
@@ -178,20 +209,25 @@ static void stopped_safe_run(void *o){
 }
 
 static void stopped_entry(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
     set_start(false);
     set_kill(true);
 
-    s_obj.rc5_command = 0;
-    s_obj.rc5_address = 0;
+    s_obj.rc5_command = -1;
+    s_obj.rc5_address = -1;
 }
 static void stopped_exit(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
 }
 static void stopped_run(void *o){
+    ARG_UNUSED(o);
     LOG_DBG("");
     if(is_kabot_custom_command(s_obj.rc5_address, s_obj.rc5_command)){
-        kabot_custom_commands[s_obj.rc5_command](o);
+        if(is_known_command(s_obj.rc5_command)){
+            kabot_custom_commands[s_obj.rc5_command](o);
+        }
     }
     main_stopped();
 }

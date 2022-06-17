@@ -25,7 +25,7 @@ arm_pid_instance_f32 PID;
 LOG_MODULE_REGISTER(app);
 
 
-#define STACKSIZE KB(32)
+#define STACKSIZE KB(64)
 #define PRIORITY 7
 
 
@@ -41,7 +41,7 @@ void main_thread(void){
 
 
     while(1){
-        k_sleep(K_MSEC(1));
+        k_sleep(K_MSEC(100));
 
         int command;
         if(rc5_new_command_received(&command)){
@@ -55,6 +55,8 @@ void main_thread(void){
             s_obj.rc5_address = rc5_get_address_bits(command);
             s_obj.rc5_command = rc5_get_command_bits(command);
 
+
+            k_sleep(K_MSEC(100));
         }
 
         fsm_start_module_run();

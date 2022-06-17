@@ -6,6 +6,7 @@
 struct line_measurement {
     bool white_line_detected;
     int threshold;
+    int raw;
     int err;
 };
 

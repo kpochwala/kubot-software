@@ -96,6 +96,7 @@ void adc_thread(void){
 
             if(k_mutex_lock(&line_measurements_mutex, K_MSEC(100)) == 0) {
                 current_measurement = &line_measurements[i];
+                current_measurement->raw = adc_readings[i];
                 if(adc_readings[i] < current_measurement->threshold){
                     current_measurement->white_line_detected = true;
                 }else{

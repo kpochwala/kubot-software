@@ -1,6 +1,7 @@
 #include "robot_sensors/sensor_thread.h"
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
+#include "led_strip_charlieplex.h"
 
 #define DISTANCE_THRESHOLD (CONFIG_VL53L0X_PROXIMITY_THRESHOLD)
 #define REFRESH_TIME_MS 20
@@ -30,6 +31,12 @@ void fetch_tof(void){
             }
             k_mutex_unlock(&tof_measurements_mutex);
         }
+
+        uint32_t output;
+        set_led(i, kabot_warning);
+        // vl53l0x_extra_calibrate_xtalk(tof_devices[i], 600, &output);
+        // vl53l0x_extra_save_xtalk(tof_devices[i], output);
+        set_led(i, kabot_ok);
     }
     
     int64_t fetch_start = k_uptime_get();
