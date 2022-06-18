@@ -17,6 +17,18 @@ static const char* tof_labels[] = {"V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7
 K_SEM_DEFINE(tof_semaphore, 0, 1);
 
 static struct distance_measurement tof_measurements[ALL_SENSORS_NUMBER];
+static unsigned int tof_thresholds[] = {
+    DISTANCE_THRESHOLD,
+    DISTANCE_THRESHOLD,
+    0,
+    0,
+    DISTANCE_THRESHOLD,
+    DISTANCE_THRESHOLD,
+    DISTANCE_THRESHOLD,
+    DISTANCE_THRESHOLD,
+    0,
+    0,    
+};
 
 static const struct device* tof_devices[ALL_SENSORS_NUMBER];
 const struct device* get_tof_device(int sensor_number){
@@ -47,10 +59,10 @@ void fetch_tof(void){
         uint32_t output;
         set_led(i, kabot_warning);
 
-        struct eeprom_view copy;
-        read_eeprom_into(&copy);
-        vl53l0x_extra_save_offset(tof_devices[i], &copy.tof.sensor[i].offset_micrometer);
-        vl53l0x_extra_save_xtalk(tof_devices[i], &copy.tof.sensor[i].xtalk_compensation_megacps);
+        // struct eeprom_view copy;
+        // read_eeprom_into(&copy);
+        // vl53l0x_extra_save_offset(tof_devices[i], &copy.tof.sensor[i].offset_micrometer);
+        // vl53l0x_extra_save_xtalk(tof_devices[i], &copy.tof.sensor[i].xtalk_compensation_megacps);
 
         // vl53l0x_extra_calibrate_xtalk(tof_devices[i], 600, &output);
         // vl53l0x_extra_save_xtalk(tof_devices[i], output);
@@ -95,7 +107,7 @@ void fetch_tof(void){
                     }
         
                     current_sensor_measurement->distance_mm = sensor_value_to_double(&value) * 1000;
-                    current_sensor_measurement->in_range = current_sensor_measurement->distance_mm < DISTANCE_THRESHOLD;
+                    current_sensor_measurement->in_range = (current_sensor_measurement->distance_mm < tof_thresholds[i]);
 
                     unlock:
                     k_mutex_unlock(&tof_measurements_mutex);

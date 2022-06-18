@@ -12,7 +12,7 @@ static const struct pwm_dt_spec m1_d2 = PWM_DT_SPEC_GET(DT_ALIAS(m1_d2));
 static const struct pwm_dt_spec m2_d1 = PWM_DT_SPEC_GET(DT_ALIAS(m2_d1));
 static const struct pwm_dt_spec m2_d2 = PWM_DT_SPEC_GET(DT_ALIAS(m2_d2));
 
-const float speed_multiplier = 0.5;
+const float speed_multiplier = 0.4;
 
 int set_m1_d1_pwm(float pwm){
     return pwm_set_pulse_dt(&m1_d1, m1_d1.period * pwm);
@@ -69,12 +69,12 @@ int set_m1_backward(){
     gpio_pin_set_dt(&m1_in2, 1);
 }
 int set_m2_forward(){
-    gpio_pin_set_dt(&m2_in1, 1);
-    gpio_pin_set_dt(&m2_in2, 0);
-}
-int set_m2_backward(){
     gpio_pin_set_dt(&m2_in1, 0);
     gpio_pin_set_dt(&m2_in2, 1);
+}
+int set_m2_backward(){
+    gpio_pin_set_dt(&m2_in1, 1);
+    gpio_pin_set_dt(&m2_in2, 0);
 }
 
 int set_m1_pwm(float pwm){

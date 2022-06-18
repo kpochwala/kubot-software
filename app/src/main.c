@@ -41,9 +41,9 @@ void main_thread(void){
     } // wait for up to 20s for initialization
 
     motors_init();
+    // set_motors(1.0, 1.0);
     rc5_init();
 
-    set_motors(0.0, 0.0);
 
 
     while(1){
