@@ -18,7 +18,7 @@ void rc5_reset();
 bool rc5_new_command_received(int* new_command);
 
 
-struct rc5 {
+struct rc5_data {
     int start;
     int toggle;
     int address;

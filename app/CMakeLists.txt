@@ -23,4 +23,13 @@ target_sources(app PRIVATE src/fsm/robot_main_states/main_started.c)
 target_sources(app PRIVATE src/fsm/robot_main_states/main_stopped_safe.c)
 target_sources(app PRIVATE src/fsm/robot_main_states/main_stopped.c)
 
+target_sources(app PRIVATE src/fsm/states/state_power_on.c)
+target_sources(app PRIVATE src/fsm/states/state_programming.c)
+target_sources(app PRIVATE src/fsm/states/state_started.c)
+target_sources(app PRIVATE src/fsm/states/state_stopped.c)
+target_sources(app PRIVATE src/fsm/states/state_stopped_safe.c)
+target_sources(app PRIVATE src/fsm/states/state_select_sensor.c)
+target_sources(app PRIVATE src/fsm/states/state_calibrate_threshold.c)
+target_sources(app PRIVATE src/fsm/states/state_calibrate_offset.c)
+
 target_sources(app PRIVATE src/eeprom/eeprom_helper.c)

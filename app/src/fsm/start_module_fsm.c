@@ -4,13 +4,12 @@
 #include <zephyr/logging/log.h>
 #include "eeprom/eeprom_helper.h"
 #include "fsm/robot_main_states.h"
-
+#include "fsm/states.h"
 
 LOG_MODULE_REGISTER(start_module_fsm);
 
 static bool is_initialized;
 
-static int dohyo_address;
 static const int start_command = 1;
 static const int stop_command = 0;
 static const int program_command_address = 0xb;
@@ -18,48 +17,29 @@ static const int start_stop_command_address = 0x7;
 static const int kabot_custom_command_rc5_address = 0x00;
 static const int kabot_reset_start_module_rc5_command = 0x0c;
 
-
-static const struct smf_state start_module_states[];
-
-enum kabot_custom_command {
-    RESET_START_MODULE = 0x0C,
-    KABOT_UP = 0x10,
-    KABOT_DOWN = 0x11,
-    KABOT_LEFT = 0x15,
-    KABOT_RIGHT = 0x16,
-    KABOT_OK = 0x17
+struct smf_state start_module_states[] = {
+    [POWER_ON] = SMF_CREATE_STATE(power_on_entry, power_on_run, power_on_exit),
+    [PROGRAMMING] = SMF_CREATE_STATE(programming_entry, programming_run, programming_exit),
+    [STARTED] = SMF_CREATE_STATE(started_entry, started_run, started_exit),
+    [STOPPED_SAFE] = SMF_CREATE_STATE(stopped_safe_entry, stopped_safe_run, stopped_safe_exit),
+    [STOPPED] = SMF_CREATE_STATE(stopped_entry, stopped_run, stopped_exit),
+    [SELECT_SENSOR] = SMF_CREATE_STATE(select_sensor_entry, select_sensor_run, select_sensor_exit),
+    [CALIBRATE_THRESHOLD] = SMF_CREATE_STATE(calibrate_threshold_entry, calibrate_threshold_run, calibrate_threshold_exit),
+    [CALIBRATE_OFFSET] = SMF_CREATE_STATE(calibrate_offset_entry, calibrate_offset_run, calibrate_offset_exit),
 };
 
 
-static bool is_known_command(int
- command){
-    return command == RESET_START_MODULE
-        // || command == KABOT_UP
-        // || command == KABOT_DOWN
-        // || command == KABOT_LEFT
-        // || command == KABOT_RIGHT
-        // || command == KABOT_OK
-        ;
+
+struct rc5_data fetch_rc5_data(struct s_object* object){
+    struct rc5_data command;
+    command.address = object->rc5_address;
+    command.command = object->rc5_command;
+    object->rc5_command = -1;
+    object->rc5_address = -1;
+    return command;
 }
-
-static const  kabot_custom_command_fn kabot_custom_commands[];
-
-
-enum start_module_state{POWER_ON, PROGRAMMING, STARTED, STOPPED_SAFE, STOPPED};
 
 struct s_object s_obj;
-
-
-// custom commands:
-
-void reset_start_module(void *o){
-    ARG_UNUSED(o);
-    smf_set_state(SMF_CTX(&s_obj), &start_module_states[POWER_ON]);
-}
-
-
-
-
 
 // module machine state commands:
 
@@ -74,10 +54,9 @@ void set_kill(bool value){
 
 void save_dohyo_address(int address){
     LOG_DBG("Setting dohyo address to 0x%x", address);
-    dohyo_address = address;
+    s_obj.current_dohyo_address = address;
     struct eeprom_view copy;
     read_eeprom_into(&copy);
-    copy.start_module.dohyo_address = dohyo_address;
     write_eeprom(&copy);
 }
 
@@ -85,7 +64,7 @@ bool is_start_command(int rc5_address, int rc5_command){
     if(rc5_address != start_stop_command_address){
         return false;
     }
-    if(rc5_command == start_command + dohyo_address) {
+    if(rc5_command == start_command + s_obj.current_dohyo_address) {
         return true;
     }
     return false;
@@ -95,7 +74,7 @@ bool is_stop_command(int rc5_address, int rc5_command){
     if(rc5_address != start_stop_command_address){
         return false;
     }
-    if(rc5_command == stop_command + dohyo_address) {
+    if(rc5_command == stop_command + s_obj.current_dohyo_address) {
         return true;
     }
     return false;
@@ -109,140 +88,6 @@ bool is_kabot_custom_command(int rc5_address, int rc5_command){
     return rc5_address == kabot_custom_command_rc5_address;
 }
 
-static void power_on_entry(void *o){
-    LOG_DBG("");
-    set_start(false);
-    set_kill(true);
-
-    struct eeprom_view copy;
-    read_eeprom_into(&copy);
-
-    dohyo_address = copy.start_module.dohyo_address;
-
-    // todo: set leds
-}
-static void power_on_exit(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-}
-static void power_on_run(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-    if(is_start_command(s_obj.rc5_address, s_obj.rc5_command)){
-        smf_set_state(SMF_CTX(&s_obj), &start_module_states[STARTED]);
-    }
-    if(is_stop_command(s_obj.rc5_address, s_obj.rc5_command)){
-        smf_set_state(SMF_CTX(&s_obj), &start_module_states[STOPPED_SAFE]);
-    }
-    if(is_program_command(s_obj.rc5_address, s_obj.rc5_command)){
-        smf_set_state(SMF_CTX(&s_obj), &start_module_states[PROGRAMMING]);
-    }
-    main_power_on();
-}
-
-static void programming_entry(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-    set_start(false);
-    set_kill(true);
-    save_dohyo_address(s_obj.rc5_command);
-    s_obj.rc5_command = -1;
-    s_obj.rc5_address = -1;
-}
-static void programming_exit(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-}
-static void programming_run(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-    //todo: flash twice
-    smf_set_state(SMF_CTX(&s_obj), &start_module_states[POWER_ON]);
-    main_programming();
-}
-
-static void started_entry(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-    set_start(true);
-    set_kill(false);
-
-    s_obj.rc5_command = -1;
-    s_obj.rc5_address = -1;
-}
-static void started_exit(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-}
-static void started_run(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-    if(is_stop_command(s_obj.rc5_address, s_obj.rc5_command)){
-        smf_set_state(SMF_CTX(&s_obj), &start_module_states[STOPPED_SAFE]);
-    }
-    // if(is_program_command(s_obj.rc5_address, s_obj.rc5_command)){
-    //     smf_set_state(SMF_CTX(&s_obj), &start_module_states[PROGRAMMING]);
-    // }
-    main_started();
-}
-
-static void stopped_safe_entry(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-    set_start(false);
-    set_kill(true);
-
-    s_obj.rc5_command = -1;
-    s_obj.rc5_address = -1;
-}
-static void stopped_safe_exit(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-}
-static void stopped_safe_run(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-    // delay 1000ms
-    // set led flashing
-    smf_set_state(SMF_CTX(&s_obj), &start_module_states[STOPPED]);
-    main_stopped_safe();
-}
-
-static void stopped_entry(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-    set_start(false);
-    set_kill(true);
-
-    s_obj.rc5_command = -1;
-    s_obj.rc5_address = -1;
-}
-static void stopped_exit(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-}
-static void stopped_run(void *o){
-    ARG_UNUSED(o);
-    LOG_DBG("");
-    if(is_kabot_custom_command(s_obj.rc5_address, s_obj.rc5_command)){
-        if(is_known_command(s_obj.rc5_command)){
-            kabot_custom_commands[s_obj.rc5_command](o);
-        }
-    }
-    main_stopped();
-}
-
-static const struct smf_state start_module_states[] = {
-    [POWER_ON] = SMF_CREATE_STATE(power_on_entry, power_on_run, power_on_exit),
-    [PROGRAMMING] = SMF_CREATE_STATE(programming_entry, programming_run, programming_exit),
-    [STARTED] = SMF_CREATE_STATE(started_entry, started_run, started_exit),
-    [STOPPED_SAFE] = SMF_CREATE_STATE(stopped_safe_entry, stopped_safe_run, stopped_safe_exit),
-    [STOPPED] = SMF_CREATE_STATE(stopped_entry, stopped_run, stopped_exit),
-};
-
-static const kabot_custom_command_fn kabot_custom_commands[] = {
-    [RESET_START_MODULE] = reset_start_module,
-};
 
 void fsm_start_module_init(){
     smf_set_initial(SMF_CTX(&s_obj), &start_module_states[POWER_ON]);
