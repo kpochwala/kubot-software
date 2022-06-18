@@ -3,6 +3,7 @@
 #include "robot_sensors/sensor_thread.h"
 #include "robot_sensors/line_sensor.h"
 #include <string.h>
+#include "motor/motor.h"
 
 static struct distance_measurement tof_measurements[ALL_SENSORS_NUMBER];
 static struct line_measurement line_measurements[ALL_LINE_SENSOR_NUMBER];

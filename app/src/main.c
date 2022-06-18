@@ -47,7 +47,7 @@ void main_thread(void){
 
 
     while(1){
-        k_sleep(K_MSEC(100));
+        k_sleep(K_MSEC(1));
 
         int command;
         if(rc5_new_command_received(&command)){

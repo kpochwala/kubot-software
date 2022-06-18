@@ -26,8 +26,8 @@ static unsigned int tof_thresholds[] = {
     DISTANCE_THRESHOLD,
     DISTANCE_THRESHOLD,
     DISTANCE_THRESHOLD,
-    0,
-    0,    
+    DISTANCE_THRESHOLD,
+    DISTANCE_THRESHOLD,    
 };
 
 static const struct device* tof_devices[ALL_SENSORS_NUMBER];
