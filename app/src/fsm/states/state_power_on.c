@@ -14,8 +14,10 @@ void power_on_entry(void *o){
     struct eeprom_view copy;
     read_eeprom_into(&copy);
 
-    s_obj.current_dohyo_address = copy.start_module.dohyo_address;
+    k_sleep(K_MSEC(1000));
 
+    s_obj.current_dohyo_address = copy.start_module.dohyo_address;
+    LOG_DBG("dohyo address: 0x%x", s_obj.current_dohyo_address);
     // todo: set leds
 }
 void power_on_exit(void *o){

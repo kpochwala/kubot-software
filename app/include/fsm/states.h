@@ -31,3 +31,7 @@ void calibrate_threshold_exit(void *o);
 void calibrate_offset_entry(void *o);
 void calibrate_offset_run(void *o);
 void calibrate_offset_exit(void *o);
+
+void calibrate_xtalk_entry(void *o);
+void calibrate_xtalk_run(void *o);
+void calibrate_xtalk_exit(void *o);

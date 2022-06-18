@@ -26,6 +26,7 @@ struct smf_state start_module_states[] = {
     [SELECT_SENSOR] = SMF_CREATE_STATE(select_sensor_entry, select_sensor_run, select_sensor_exit),
     [CALIBRATE_THRESHOLD] = SMF_CREATE_STATE(calibrate_threshold_entry, calibrate_threshold_run, calibrate_threshold_exit),
     [CALIBRATE_OFFSET] = SMF_CREATE_STATE(calibrate_offset_entry, calibrate_offset_run, calibrate_offset_exit),
+    [CALIBRATE_XTALK] = SMF_CREATE_STATE(calibrate_xtalk_entry, calibrate_xtalk_run, calibrate_xtalk_exit),
 };
 
 
@@ -55,8 +56,9 @@ void set_kill(bool value){
 void save_dohyo_address(int address){
     LOG_DBG("Setting dohyo address to 0x%x", address);
     s_obj.current_dohyo_address = address;
-    struct eeprom_view copy;
+    volatile struct eeprom_view copy;
     read_eeprom_into(&copy);
+    copy.start_module.dohyo_address = address;
     write_eeprom(&copy);
 }
 

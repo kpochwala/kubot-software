@@ -120,6 +120,6 @@ struct line_measurement* get_line(){
     return copy;
 }
 
-#define STACKSIZE KB(2)
+#define STACKSIZE KB(64)
 #define PRIORITY 7
 K_THREAD_DEFINE(adc_thread_id, STACKSIZE, adc_thread, NULL, NULL, NULL, PRIORITY, 0, 0);

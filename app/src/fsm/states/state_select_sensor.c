@@ -60,6 +60,10 @@ void select_sensor_run(void *o){
                 s_obj.current_selected_sensor = current_sensor;
                 smf_set_state(SMF_CTX(&s_obj), &start_module_states[CALIBRATE_OFFSET]);
             break;
+            case KABOT_YELLOW:
+                s_obj.current_selected_sensor = current_sensor;
+                smf_set_state(SMF_CTX(&s_obj), &start_module_states[CALIBRATE_XTALK]);
+            break;
             case KABOT_EXIT:
                 smf_set_state(SMF_CTX(&s_obj), &start_module_states[STOPPED]);
             break;

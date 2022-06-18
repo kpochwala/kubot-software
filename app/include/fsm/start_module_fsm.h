@@ -19,6 +19,7 @@ enum start_module_state{
     SELECT_SENSOR,
     CALIBRATE_THRESHOLD,
     CALIBRATE_OFFSET,
+    CALIBRATE_XTALK,
 };
 
 enum kabot_custom_command {

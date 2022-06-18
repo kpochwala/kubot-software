@@ -2,6 +2,9 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 #include "led_strip_charlieplex.h"
+#include "eeprom/eeprom_helper.h"
+#include "eeprom/eeprom_structs.h"
+#include "main.h"
 
 #define DISTANCE_THRESHOLD (CONFIG_VL53L0X_PROXIMITY_THRESHOLD)
 #define REFRESH_TIME_MS 20
@@ -15,11 +18,19 @@ K_SEM_DEFINE(tof_semaphore, 0, 1);
 
 static struct distance_measurement tof_measurements[ALL_SENSORS_NUMBER];
 
+static const struct device* tof_devices[ALL_SENSORS_NUMBER];
+const struct device* get_tof_device(int sensor_number){
+    return tof_devices[sensor_number];
+}
+
 void fetch_tof(void){
+
+    if(k_sem_take(&main_semaphore, K_MSEC(1000)) != 0){
+        LOG_ERR("Failed to acquire semaphore main");
+    }
 
     struct sensor_value value;
     struct distance_measurement* current_sensor_measurement;
-    const struct device* tof_devices[ALL_SENSORS_NUMBER];
 
     for(int i = 0; i < ALL_SENSORS_NUMBER; i++) {
         tof_devices[i] = device_get_binding(tof_labels[i]);
@@ -35,11 +46,19 @@ void fetch_tof(void){
 
         uint32_t output;
         set_led(i, kabot_warning);
+
+        struct eeprom_view copy;
+        read_eeprom_into(&copy);
+        vl53l0x_extra_save_offset(tof_devices[i], &copy.tof.sensor[i].offset_micrometer);
+        vl53l0x_extra_save_xtalk(tof_devices[i], &copy.tof.sensor[i].xtalk_compensation_megacps);
+
         // vl53l0x_extra_calibrate_xtalk(tof_devices[i], 600, &output);
         // vl53l0x_extra_save_xtalk(tof_devices[i], output);
         set_led(i, kabot_ok);
     }
     
+    k_sem_give(&main_semaphore);
+
     int64_t fetch_start = k_uptime_get();
     int64_t fetch_total_time = 0;
     int64_t calculated_sleep = 0;

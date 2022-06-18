@@ -14,6 +14,8 @@ struct distance_measurement {
 struct distance_measurement* get_tof();
 extern struct k_sem tof_semaphore; 
 
+const struct device* get_tof_device(int sensor_number);
+
 //todo: this is uglyyyyyy hack
 int vl53l0x_extra_calibrate_xtalk(const struct device *dev, int distance_mm, uint32_t *xtalk_output);
 int vl53l0x_extra_save_xtalk(const struct device *dev, uint32_t xtalk_data);

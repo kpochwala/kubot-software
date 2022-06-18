@@ -6,8 +6,6 @@
 
 LOG_MODULE_REGISTER(eeprom_helper);
 
-struct eeprom_view eeprom_ram_copy;
-
 static const struct device *get_eeprom_device(void)
 {
 	const struct device *dev = DEVICE_DT_GET(DT_ALIAS(eeprom_0));
@@ -46,6 +44,8 @@ static void initialize_eeprom_tof(struct eeprom_view *eeprom_ram_copy){
         strcpy(eeprom_ram_copy->tof.sensor[i].sensor_name, "uninitialized");
         eeprom_ram_copy->tof.sensor[i].wants_initialization = true;
         eeprom_ram_copy->tof.sensor[i].enabled = true;
+		eeprom_ram_copy->tof.sensor[i].xtalk_compensation_megacps = 0;
+		eeprom_ram_copy->tof.sensor[i].offset_micrometer = 0;
     }
 }
 
@@ -77,12 +77,18 @@ void initialize_kubot_eeprom(){
     initialize_eeprom_eeprom_configuration(&copy);
 
 	int ret = 0;
-	ret = eeprom_write(get_eeprom_device(), 0, &copy, sizeof(struct eeprom_view));	
+	ret = eeprom_write(get_eeprom_device(), 0, &copy, sizeof(struct eeprom_view));
+
+	volatile struct eeprom_view new_copy;
+	read_eeprom_into(&new_copy);
+	if(memcmp(&copy, &new_copy, sizeof(struct eeprom_view))){
+		LOG_ERR("Writing to eeprom failed!");
+	}
 }
 
 void read_eeprom_into(struct eeprom_view *ram_copy){
 
-	volatile struct device* dev = DEVICE_DT_GET(DT_ALIAS(eeprom_0));
+	struct device* dev = get_eeprom_device();
 	if(dev == NULL){
 		LOG_ERR("Could not find eeprom device!");
 		return;
@@ -91,7 +97,10 @@ void read_eeprom_into(struct eeprom_view *ram_copy){
 		LOG_ERR("Device not ready!");
 		return;
 	}
-	eeprom_read(dev, 0, ram_copy, sizeof(struct eeprom_view));
+	int ret = eeprom_read(get_eeprom_device(), 0, ram_copy, sizeof(struct eeprom_view));
+	if(ret){
+		LOG_ERR("EEPROM write failed as fuck");
+	}
 	if(ram_copy->config.magic_number_of_initialization != 0xEFBEADDE){
 		LOG_ERR("Magic number mismatch! Reinitializing eeprom with default values!");
 		initialize_kubot_eeprom();
@@ -105,5 +114,17 @@ void write_eeprom(struct eeprom_view *ram_copy){
 		LOG_ERR("Could not find eeprom device!");
 		return;
 	}
-	eeprom_write(dev, 0, ram_copy, sizeof(struct eeprom_view));
+	
+	int ret = 0;
+	ret = eeprom_write(get_eeprom_device(), 0, ram_copy, sizeof(struct eeprom_view));
+	if(ret){
+		LOG_ERR("Eeprom write failed as fuckkkkk");
+	}
+
+	struct eeprom_view new_copy;
+	read_eeprom_into(&new_copy);
+	k_sleep(K_MSEC(100));
+	if(memcmp(&ram_copy, &new_copy, sizeof(struct eeprom_view))){
+		LOG_ERR("Writing to eeprom failed!");
+	}
 }

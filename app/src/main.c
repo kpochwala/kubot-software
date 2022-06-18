@@ -28,12 +28,18 @@ LOG_MODULE_REGISTER(app);
 #define STACKSIZE KB(64)
 #define PRIORITY 7
 
-
+K_SEM_DEFINE(main_semaphore, 0, 1);
 
 
 void main_thread(void){
-
     k_sleep(K_MSEC(1000));
+
+    // initialize_kubot_eeprom();
+
+    if(k_sem_take(&main_semaphore, K_MSEC(20000)) != 0){
+        LOG_ERR("Unable to acquire main semaphore!");
+    } // wait for up to 20s for initialization
+
     motors_init();
     rc5_init();
 
@@ -41,7 +47,7 @@ void main_thread(void){
 
 
     while(1){
-        k_sleep(K_MSEC(1));
+        k_sleep(K_MSEC(100));
 
         int command;
         if(rc5_new_command_received(&command)){

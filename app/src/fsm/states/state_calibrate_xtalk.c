@@ -9,8 +9,8 @@
 #include "eeprom/eeprom_helper.h"
 #include "eeprom/eeprom_structs.h"
 
-LOG_MODULE_REGISTER(state_calibrate_offset);
-#define CALIBRATION_DISTANCE_MM 80
+LOG_MODULE_REGISTER(state_calibrate_xtalk);
+#define CALIBRATION_DISTANCE_MM (80+150)
 
 
 static int current_sensor = 0;
@@ -18,7 +18,7 @@ static int current_sensor = 0;
 static struct led_rgb color;
 
 static const struct device* sensor_device;
-static int32_t offset_micrometer;
+static uint32_t xtalk_compensation_megacps;
 
 static void blink_save(){
     
@@ -33,19 +33,19 @@ static void blink_save(){
     set_led(current_sensor, kabot_active);
 }
 
-void calibrate_offset_entry(void *o){
+void calibrate_xtalk_entry(void *o){
     ARG_UNUSED(o);
     LOG_DBG("");
-    color = kabot_ok;
+    color = kabot_warning;
     current_sensor = s_obj.current_selected_sensor;
     sensor_device = get_tof_device(current_sensor);
 }
-void calibrate_offset_exit(void *o){
+void calibrate_xtalk_exit(void *o){
     ARG_UNUSED(o);  
     LOG_DBG("");
     set_led_all(kabot_off);
 }
-void calibrate_offset_run(void *o){
+void calibrate_xtalk_run(void *o){
     ARG_UNUSED(o);
     LOG_DBG("");
     set_led_all(color);
@@ -59,15 +59,15 @@ void calibrate_offset_run(void *o){
                 // blink
                 // save calibration to eeprom
                 if (k_sem_take(&tof_semaphore, K_MSEC(1000)) == 0){
-                    LOG_WRN("Calibrate offset");
+                    LOG_WRN("Calibrate xtalk");
                     smf_set_state(SMF_CTX(&s_obj), &start_module_states[SELECT_SENSOR]);
 
-                    vl53l0x_extra_calibrate_offset(sensor_device, CALIBRATION_DISTANCE_MM, &offset_micrometer);
-                    LOG_DBG("Offset after calibration: %d", offset_micrometer);
+                    vl53l0x_extra_calibrate_xtalk(sensor_device, CALIBRATION_DISTANCE_MM, &xtalk_compensation_megacps);
+                    LOG_DBG("xtalk after calibration: %d", xtalk_compensation_megacps);
                     
                     struct eeprom_view copy;
                     read_eeprom_into(&copy);
-                    copy.tof.sensor[current_sensor].offset_micrometer = offset_micrometer;
+                    copy.tof.sensor[current_sensor].xtalk_compensation_megacps = xtalk_compensation_megacps;
                     write_eeprom(&copy);
 
                     blink_save();

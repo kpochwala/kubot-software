@@ -4,7 +4,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(app)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-zephyr_library_compile_options(-std=c++17 -g -Wall -Wextra -Wno-unused-variable -fpermissive -Wno-comment)
+zephyr_library_compile_options(-std=c++17 -g -O0 -Wall -Wextra -Wno-unused-variable -fpermissive -Wno-comment)
 
 target_include_directories(app PRIVATE include)
 target_sources(app PRIVATE src/main.c)
@@ -31,5 +31,6 @@ target_sources(app PRIVATE src/fsm/states/state_stopped_safe.c)
 target_sources(app PRIVATE src/fsm/states/state_select_sensor.c)
 target_sources(app PRIVATE src/fsm/states/state_calibrate_threshold.c)
 target_sources(app PRIVATE src/fsm/states/state_calibrate_offset.c)
+target_sources(app PRIVATE src/fsm/states/state_calibrate_xtalk.c)
 
 target_sources(app PRIVATE src/eeprom/eeprom_helper.c)
