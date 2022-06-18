@@ -12,7 +12,7 @@ struct distance_measurement {
 };
 
 struct distance_measurement* get_tof();
-
+extern struct k_sem tof_semaphore; 
 
 //todo: this is uglyyyyyy hack
 int vl53l0x_extra_calibrate_xtalk(const struct device *dev, int distance_mm, uint32_t *xtalk_output);

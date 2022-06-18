@@ -11,6 +11,7 @@ K_MUTEX_DEFINE(tof_measurements_mutex);
 
 static const char* tof_labels[] = {"V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9"};
 
+K_SEM_DEFINE(tof_semaphore, 0, 1);
 
 static struct distance_measurement tof_measurements[ALL_SENSORS_NUMBER];
 
@@ -44,43 +45,49 @@ void fetch_tof(void){
     int64_t calculated_sleep = 0;
 
     while(1){
-        
-        fetch_total_time = k_uptime_get() - fetch_start;
-        fetch_start = k_uptime_get(); // reset fetch timer
+        if (k_sem_take(&tof_semaphore, K_MSEC(1000)) == 0){
+            fetch_total_time = k_uptime_get() - fetch_start;
+            fetch_start = k_uptime_get(); // reset fetch timer
 
-        calculated_sleep = REFRESH_TIME_MS - fetch_total_time;      
-        
-        if((calculated_sleep) < 1){ // make sure we yield at least for 1 ms for other tasks
-            k_sleep(K_MSEC(1)) ;
-        }else{
-            k_sleep(K_MSEC(calculated_sleep)); // sleep for time that is REFRESH_TIME_MS - measurement fetch time
-        }
-
-        for(int i = 0; i < ALL_SENSORS_NUMBER; i++) {
-
-            if(k_mutex_lock(&tof_measurements_mutex, K_MSEC(100)) == 0) {
-                
-                current_sensor_measurement = &tof_measurements[i];
-    
-                current_sensor_measurement->err = sensor_sample_fetch(tof_devices[i]);
-                if(current_sensor_measurement->err){
-                    LOG_ERR("Error fetching value from sensor %s", tof_devices[i]->name);
-                    goto unlock;
-                }
-                
-                current_sensor_measurement->err = sensor_channel_get(tof_devices[i], SENSOR_CHAN_DISTANCE, &value);
-                if(current_sensor_measurement->err){
-                    LOG_ERR("Error getting value from measurement for %s", tof_devices[i]->name);
-                    goto unlock;
-                }
-    
-                current_sensor_measurement->distance_mm = sensor_value_to_double(&value) * 1000;
-                current_sensor_measurement->in_range = current_sensor_measurement->distance_mm < DISTANCE_THRESHOLD;
-
-                unlock:
-                k_mutex_unlock(&tof_measurements_mutex);
+            calculated_sleep = REFRESH_TIME_MS - fetch_total_time;      
+            
+            if((calculated_sleep) < 1){ // make sure we yield at least for 1 ms for other tasks
+                k_sleep(K_MSEC(1)) ;
+            }else{
+                k_sleep(K_MSEC(calculated_sleep)); // sleep for time that is REFRESH_TIME_MS - measurement fetch time
             }
+
+            for(int i = 0; i < ALL_SENSORS_NUMBER; i++) {
+
+                if(k_mutex_lock(&tof_measurements_mutex, K_MSEC(100)) == 0) {
+                    
+                    current_sensor_measurement = &tof_measurements[i];
+        
+                    current_sensor_measurement->err = sensor_sample_fetch(tof_devices[i]);
+                    if(current_sensor_measurement->err){
+                        LOG_ERR("Error fetching value from sensor %s", tof_devices[i]->name);
+                        goto unlock;
+                    }
+                    
+                    current_sensor_measurement->err = sensor_channel_get(tof_devices[i], SENSOR_CHAN_DISTANCE, &value);
+                    if(current_sensor_measurement->err){
+                        LOG_ERR("Error getting value from measurement for %s", tof_devices[i]->name);
+                        goto unlock;
+                    }
+        
+                    current_sensor_measurement->distance_mm = sensor_value_to_double(&value) * 1000;
+                    current_sensor_measurement->in_range = current_sensor_measurement->distance_mm < DISTANCE_THRESHOLD;
+
+                    unlock:
+                    k_mutex_unlock(&tof_measurements_mutex);
+                }
+            }
+
+
+        } else {
+            LOG_WRN("Tof semaphore timed out!");
         }
+        k_sem_give(&tof_semaphore);
     }
 }
 

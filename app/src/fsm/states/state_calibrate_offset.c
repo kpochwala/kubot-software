@@ -34,8 +34,14 @@ void calibrate_offset_run(void *o){
                 // run calibration
                 // blink
                 // save calibration to eeprom
-                LOG_WRN("Calibrate offset");
-                smf_set_state(SMF_CTX(&s_obj), &start_module_states[SELECT_SENSOR]);
+                if (k_sem_take(&tof_semaphore, K_MSEC(1000)) == 0){
+                    LOG_WRN("Calibrate offset");
+                    smf_set_state(SMF_CTX(&s_obj), &start_module_states[SELECT_SENSOR]);
+                    k_sem_give(&tof_semaphore);
+                }else{
+                    LOG_WRN("Could not take tof semaphore");
+                }
+
             break;
             case KABOT_EXIT:
                 smf_set_state(SMF_CTX(&s_obj), &start_module_states[SELECT_SENSOR]);
