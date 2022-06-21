@@ -1,3 +1,5 @@
+[![Build](https://github.com/kpochwala/kubot-software/actions/workflows/build.yml/badge.svg)](https://github.com/kpochwala/kubot-software/actions/workflows/build.yml)
+
 # Zephyr Kubot Minisumo Software
 ## Getting Started
 
