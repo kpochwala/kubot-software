@@ -19,7 +19,8 @@
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
 		// zephyr,console = &usart3;
-		zephyr,shell-uart = &cdc_acm_uart1;
+		zephyr,shell-uart = &usart3;
+		// zephyr,shell-uart = &cdc_acm_uart1;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
 		// zephyr,code-partition = &slot0_partition;
